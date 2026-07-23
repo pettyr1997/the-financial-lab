@@ -1,0 +1,17 @@
+{
+  "name": "Robert's Financial Command Center",
+  "short_name": "Friday Finance",
+  "description": "A private, phone-friendly weekly budget, debt, and savings planner.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
+  "background_color": "#f3f6f8",
+  "theme_color": "#17324D",
+  "icons": [
+    {"src":"icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
+    {"src":"icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+  ]
+}
