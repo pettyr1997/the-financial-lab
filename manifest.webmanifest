@@ -1,14 +1,21 @@
 {
-  "name": "Robert's Financial Command Center",
-  "short_name": "Finance Center",
-  "description": "A Friday-paycheck personal finance planner for bills, debt, savings, and spending.",
+  "name": "The Financial Lab by Dexx",
+  "short_name": "Financial Lab",
   "start_url": "./",
-  "scope": "./",
   "display": "standalone",
-  "background_color": "#08101d",
-  "theme_color": "#0b1020",
+  "background_color": "#07131f",
+  "theme_color": "#07131f",
+  "description": "A personalized Friday budgeting and financial coaching lab.",
   "icons": [
-    {"src":"icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
-    {"src":"icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
   ]
 }

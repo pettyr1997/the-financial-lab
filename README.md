@@ -1,3 +1,5 @@
-# Robert's Financial Command Center — Phase 2.5 + Phase 3 Starter
+# The Financial Lab by Dexx — Phase 3
 
-Adds money accounts, guided Friday workflow, transaction tracking, Today's Focus, and a private in-browser Money Coach. Uses the same `rfcc-v3-data` storage key as earlier releases. Export a backup before upgrading.
+Phase 3 includes the complete Dexx rebrand, Lab Dashboard, Friday Lab, Financial Experiments, Research Center, Lab Reports, Dexx's Lab Notebook, Financial Timeline, Research Milestones, Ask Dexx, dark/light mode, offline PWA support, and backward-compatible local data using `rfcc-v3-data`.
+
+Upload every file in this folder to the root of the GitHub Pages repository.
