@@ -1,3 +1,17 @@
+# Financial Lab v4.1.21.4 — First-Run Front Door
+
+See `RELEASE_NOTES_4.1.21.4.md` for what's new. Earlier patch notes are preserved below.
+
+---
+
+## v4.1.21.4 — First-Run Front Door (this release)
+
+- Fixed: the "JOIN THE LAB" welcome screen never appeared on load. First-run visitors now land on the front door; returning users skip it.
+- Fresh installs greet "RESEARCHER" instead of "ROB" until a name is set.
+- 6 new boot-behavior tests (68 total via `npm test`). No payday-math or schema changes.
+
+---
+
 # Financial Lab v4.1.21.3 — Dexx Cartoon Mascot
 
 See `RELEASE_NOTES_4.1.21.3.md` for what's new. Earlier patch notes are preserved below.
