@@ -1,6 +1,6 @@
-// Financial Lab 4.1.21.0 — Payday Continuity
-const CACHE='financial-lab-v4.1.21.0';
-const CORE=['./','./index.html','./styles.css?v=4.1.21.0','./app.js?v=4.1.21.0','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png','./logo-full.svg'];
+// Financial Lab 4.1.21.5 — Payday Continuity
+const CACHE='financial-lab-v4.1.21.5';
+const CORE=['./','./index.html','./styles.css?v=4.1.21.5','./app.js?v=4.1.21.5','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png','./logo-full.svg'];
 
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE)).then(()=>self.skipWaiting()));
