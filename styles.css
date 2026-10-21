@@ -1262,3 +1262,20 @@ body.front-door-active .app-shell *{
 .bottom-nav button{min-height:64px;padding:10px 4px}
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--green);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+
+/* 4.1.21.6 — Flow: journey spine bar + quieter home */
+.journey-bar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(78px + var(--safe));width:min(520px,100%);z-index:29;display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(6,15,9,.97);border-top:1px solid rgba(110,229,30,.4);box-shadow:0 -10px 34px rgba(0,0,0,.5)}
+.journey-bar .jb-text{flex:1;min-width:0}
+.journey-bar .jb-text span{display:block;color:var(--green);font-size:10px;font-weight:700;letter-spacing:.07em}
+.journey-bar .jb-text strong{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.journey-bar button{border:0;border-radius:9px;background:var(--green);color:#071006;font-weight:800;padding:11px 14px;font-size:12px;white-space:nowrap;min-height:44px}
+.journey-bar button:disabled{opacity:.45}
+body.front-door-active .journey-bar{display:none}
+body[data-view="start"] .journey-bar,body[data-view="dexx"] .journey-bar{display:none}
+body:not(.front-door-active):not([data-view="start"]):not([data-view="dexx"]) .app-shell{padding-bottom:calc(152px + var(--safe))}
+.quiet-details{margin-bottom:12px}
+.quiet-summary{list-style:none;cursor:pointer;background:linear-gradient(145deg,rgba(16,23,20,.98),rgba(7,11,9,.98));border:1px solid var(--line);border-radius:13px;padding:15px 17px;display:flex;flex-direction:column;gap:3px}
+.quiet-summary::-webkit-details-marker{display:none}
+.quiet-summary span{color:var(--green);font-size:13px;letter-spacing:.06em;font-weight:700}
+.quiet-summary small{color:var(--muted);font-size:12px}
+.quiet-details[open] .quiet-summary{margin-bottom:12px;border-color:rgba(110,229,30,.4)}

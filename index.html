@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/><meta content="#050807" name="theme-color"/><meta content="Financial Lab powered by Dexx" name="description"/><link href="manifest.webmanifest" rel="manifest"/><link href="icon.svg" rel="icon"/><link href="icon-192.png" rel="apple-touch-icon"/><link href="styles.css?v=4.1.21.5" rel="stylesheet"/><meta name="apple-mobile-web-app-capable" content="yes"/><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/><meta name="apple-mobile-web-app-title" content="Financial Lab"/><title>Financial Lab — Powered by Dexx</title><meta content="4.1.21.5" name="financial-lab-version"/><meta name="financial-lab-release" content="4.1.21.5-payday-truth-cash-flow-learning"/></head>
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/><meta content="#050807" name="theme-color"/><meta content="Financial Lab powered by Dexx" name="description"/><link href="manifest.webmanifest" rel="manifest"/><link href="icon.svg" rel="icon"/><link href="icon-192.png" rel="apple-touch-icon"/><link href="styles.css?v=4.1.21.6" rel="stylesheet"/><meta name="apple-mobile-web-app-capable" content="yes"/><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/><meta name="apple-mobile-web-app-title" content="Financial Lab"/><title>Financial Lab — Powered by Dexx</title><meta content="4.1.21.6" name="financial-lab-version"/><meta name="financial-lab-release" content="4.1.21.6-payday-truth-cash-flow-learning"/></head>
 <body class="front-door-active">
 <div class="front-door" id="frontDoor">
   <div class="front-door-glow"></div>
@@ -52,9 +52,24 @@
 <main>
 <section class="view active" id="laboratory">
 
-  <section class="card lab-briefing-card" id="labBriefing">
+<div class="hero"><div><p class="eyebrow" id="greeting">GOOD MORNING, ROB 👋</p><h1>Welcome back<br/><span>to the Lab.</span></h1></div><img alt="" aria-hidden="true" class="dexx-hero-image" onerror="this.onerror=null;this.style.display='none'" src="dexx-character-clean.jpg"/></div>
+
+<section class="card money-journey-card" id="moneyJourneyCard">
+    <div class="section-head"><span>YOUR MONEY JOURNEY</span><b id="moneyJourneyStatus">Checking next step</b></div>
+    <h2 id="moneyJourneyTitle">Your money cycle, step by step.</h2>
+    <p class="manager-copy" id="moneyJourneyCopy">Dexx unlocks each step only when the step before it is real and complete.</p>
+    <div class="money-journey-list" id="moneyJourneyList"></div>
+    <div class="money-journey-next" id="moneyJourneyNext">
+      <span>DEXX CURRENT STEP</span>
+      <strong id="moneyJourneyNextTitle">Checking your Lab</strong>
+      <p id="moneyJourneyNextText">Dexx is finding the next step in your money cycle.</p>
+    </div>
+    <button class="primary" id="moneyJourneyAction" type="button">CHECKING NEXT STEP</button>
+  </section>
+
+<section class="card lab-briefing-card" id="labBriefing">
     <div class="section-head">
-      <span>4.1.21.5 LAB BRIEFING</span>
+      <span>YOUR MONEY TODAY</span>
       <b id="labBriefingStatus">Getting ready</b>
     </div>
     <h2 id="labBriefingTitle">Your money status at a glance.</h2>
@@ -77,21 +92,16 @@
     </div>
   </section>
 
-  <section class="card money-journey-card" id="moneyJourneyCard">
-    <div class="section-head"><span>4.1.21.5 DEXX MONEY JOURNEY</span><b id="moneyJourneyStatus">Checking next step</b></div>
-    <h2 id="moneyJourneyTitle">Your money cycle, step by step.</h2>
-    <p class="manager-copy" id="moneyJourneyCopy">Dexx unlocks each step only when the step before it is real and complete.</p>
-    <div class="money-journey-list" id="moneyJourneyList"></div>
-    <div class="money-journey-next" id="moneyJourneyNext">
-      <span>DEXX CURRENT STEP</span>
-      <strong id="moneyJourneyNextTitle">Checking your Lab</strong>
-      <p id="moneyJourneyNextText">Dexx is finding the next step in your money cycle.</p>
-    </div>
-    <button class="primary" id="moneyJourneyAction" type="button">CHECKING NEXT STEP</button>
-  </section>
+<div class="stats-grid"><article class="stat"><span>CASH AVAILABLE</span><strong id="cashAvailable">$0.00</strong><small>▣</small></article><article class="stat orange"><span>BILLS THIS WEEK</span><strong id="billsWeek">$0.00</strong><small>▦</small></article><article class="stat"><span>SAVINGS</span><strong id="savingsTotal">$0.00</strong><small>◉</small></article><article class="stat red"><span>DEBT REMAINING</span><strong id="debtRemaining">$0.00</strong><small>▤</small></article></div>
 
-  <section class="card lab-readiness-card" id="labReadinessCard">
-    <div class="section-head"><span>4.1.21.5 LAB READINESS</span><b id="labReadinessStatus">Checking setup</b></div>
+<section class="card"><div class="section-head"><span>UPCOMING BILLS</span><button data-go="budget">See All</button></div><div class="bill-list" id="billList"></div></section>
+
+<section class="card mission-card"><div class="section-head"><span>TODAY'S MISSION</span><b id="missionCount">0 / 4</b></div><label><input data-mission="spending" type="checkbox"/><i></i>Stay under spending goal</label><label><input data-mission="saving" type="checkbox"/><i></i>Save $20</label><label><input data-mission="bills" type="checkbox"/><i></i>Review upcoming bills</label><label><input data-mission="friday" type="checkbox"/><i></i>Complete Friday Lab</label><div class="flask">⚗</div></section>
+
+<details class="quiet-details"><summary class="quiet-summary"><span>YOUR PROGRESS &amp; INSIGHTS</span><small>Health score · setup progress · Dexx’s plan · timeline — tap to open</small></summary>
+
+<section class="card lab-readiness-card" id="labReadinessCard">
+    <div class="section-head"><span>SETUP PROGRESS</span><b id="labReadinessStatus">Checking setup</b></div>
     <div class="lab-readiness-top"><div><strong id="labReadinessCount">0 of 6 areas complete</strong><span id="labReadinessAccuracy">Checking accuracy</span></div><b id="labReadinessNext">CONTINUE SETUP</b></div>
     <div class="setup-readiness-meter compact" aria-label="Financial Lab readiness"><i id="labReadinessBar"></i></div>
     <p id="labReadinessAccuracyText">Dexx is checking which financial details are known.</p>
@@ -99,9 +109,9 @@
     <button class="primary" data-go="start" id="labReadinessOpen" type="button">CONTINUE SETUP</button>
   </section>
 
-  <section class="card health-score-card">
+<section class="card health-score-card">
     <div class="section-head">
-      <span>4.1.21.5 FINANCIAL HEALTH SCORE</span>
+      <span>FINANCIAL HEALTH SCORE</span>
       <b id="healthScoreChange">Building baseline</b>
     </div>
 
@@ -136,9 +146,9 @@
     </div>
   </section>
 
-  <section class="card action-center-card">
+<section class="card action-center-card">
     <div class="section-head">
-      <span>4.1.21.5 DEXX ACTION CENTER</span>
+      <span>DEXX ACTION CENTER</span>
       <b id="actionCenterStatus">Ready</b>
     </div>
     <p class="manager-copy">Dexx turns your Financial Health Score and payday data into the next few money moves that matter most.</p>
@@ -158,20 +168,20 @@
     </div>
   </section>
 
-<div class="hero"><div><p class="eyebrow" id="greeting">GOOD MORNING, ROB 👋</p><h1>Welcome back<br/><span>to the Lab.</span></h1></div><img alt="" aria-hidden="true" class="dexx-hero-image" onerror="this.onerror=null;this.style.display='none'" src="dexx-character-clean.jpg"/></div>
-
-<section class="card mission-card"><div class="section-head"><span>TODAY'S MISSION</span><b id="missionCount">0 / 4</b></div><label><input data-mission="spending" type="checkbox"/><i></i>Stay under spending goal</label><label><input data-mission="saving" type="checkbox"/><i></i>Save $20</label><label><input data-mission="bills" type="checkbox"/><i></i>Review upcoming bills</label><label><input data-mission="friday" type="checkbox"/><i></i>Complete Friday Lab</label><div class="flask">⚗</div></section>
-<div class="stats-grid"><article class="stat"><span>CASH AVAILABLE</span><strong id="cashAvailable">$0.00</strong><small>▣</small></article><article class="stat orange"><span>BILLS THIS WEEK</span><strong id="billsWeek">$0.00</strong><small>▦</small></article><article class="stat"><span>SAVINGS</span><strong id="savingsTotal">$0.00</strong><small>◉</small></article><article class="stat red"><span>DEBT REMAINING</span><strong id="debtRemaining">$0.00</strong><small>▤</small></article></div>
 <section class="card confidence-card"><div><div class="card-title">DEXX CONFIDENCE</div><strong id="confidenceLabel">LOW</strong><p id="confidenceText">Complete your profile and enter a paycheck.</p></div><div class="confidence-meter"><i id="confidenceBar"></i></div></section>
+
 <section class="card"><div class="section-head"><span>FINANCIAL TIMELINE</span><button data-go="profile">Edit Profile</button></div><div class="timeline" id="financialTimeline"></div></section>
+
 <section class="card observation"><img alt="" aria-hidden="true" class="dexx-observation-image" onerror="this.onerror=null;this.style.display='none'" src="dexx-character-clean.jpg"/><div><div class="card-title">DEXX'S OBSERVATION</div><p id="dexxObservation">Add your real numbers and I’ll help you run the experiment.</p></div><span class="trend">⌁</span></section>
-<section class="card"><div class="section-head"><span>UPCOMING BILLS</span><button data-go="budget">See All</button></div><div class="bill-list" id="billList"></div></section>
+
 <section class="card progress-card"><div class="section-head"><span>EXPERIMENT PROGRESS</span><b>This Week</b></div><div class="progress-row"><div class="progress"><i id="progressBar"></i></div><strong id="progressText">0%</strong></div></section>
+
+</details>
 </section>
 <section class="view" id="budget">
 <div class="page-title"><p>BUDGET LAB</p><h1>Dexx Payday Mode.</h1></div>
 <section class="card payday-command-card" id="paydayCommandCenter">
-  <div class="section-head"><span>4.1.21.5 PAYDAY COMMAND CENTER</span><b id="commandCenterStatus">Waiting for check</b></div>
+  <div class="section-head"><span>PAYDAY COMMAND CENTER</span><b id="commandCenterStatus">Waiting for check</b></div>
   <p class="manager-copy">Your whole payday in one view — what came in, what gets protected, what is moving forward, and what is truly safe to spend.</p>
   <div class="command-flow" aria-label="Payday money flow">
     <div class="command-flow-item income"><span id="commandPaycheckLabel">PAYCHECK</span><strong id="commandPaycheck">$0.00</strong><small id="commandCheckDate">No check entered</small></div>
@@ -196,7 +206,7 @@
     <button type="button" id="catchupSkipAll" class="catchup-skip-all">Mark all skipped</button>
   </section>
   <section class="weekly-runway" id="weeklyRunway" hidden>
-    <div class="runway-head"><div><span>4.1.21.5 WEEKLY RUNWAY</span><strong>Make TRUE Safe-to-Spend last until payday</strong></div><b id="runwayStatus">On pace</b></div>
+    <div class="runway-head"><div><span>WEEKLY RUNWAY</span><strong>Make TRUE Safe-to-Spend last until payday</strong></div><b id="runwayStatus">On pace</b></div>
     <div class="runway-grid">
       <article><span>DAYS LEFT</span><strong id="runwayDays">—</strong><small id="runwayDaysNote">Until next payday</small></article>
       <article><span>SAFE REMAINING</span><strong id="runwaySafe">$0.00</strong><small>After recorded spending</small></article>
@@ -220,7 +230,7 @@
     <p id="runwayReadout">Approve a payday plan to start your weekly runway.</p>
   </section>
   <section class="payday-execution" id="paydayExecutionMode" hidden>
-    <div class="execution-head"><div><span>4.1.21.5 PAYDAY EXECUTION MODE</span><strong>Approved plan → real-world moves</strong></div><b id="executionProgress">Execution ready</b></div>
+    <div class="execution-head"><div><span>PAYDAY EXECUTION MODE</span><strong>Approved plan → real-world moves</strong></div><b id="executionProgress">Execution ready</b></div>
     <p class="execution-intro">Dexx turns the approved plan into a short checklist. A future paycheck stays planned until it actually lands. Once you confirm payday, Dexx records the reserve and savings allocations and opens the real execution checklist.</p>
     <button class="execution-landing-button" id="confirmPaycheckLanded" type="button" hidden>PAYCHECK LANDS</button>
     <div class="paycheck-reconcile" id="paycheckReconcile" hidden>
@@ -252,7 +262,7 @@
   </div>
 </section>
 <section class="card next-paycheck-card">
-  <div class="section-head"><span>4.1.7.2 PAYDAY GUARD</span><b>Less re-entry</b></div>
+  <div class="section-head"><span>PAYDAY GUARD</span><b>Less re-entry</b></div>
   <p class="manager-copy">Start the next paycheck cycle without rebuilding your setup. Bills, debts, savings goals, Reserve Memory, expenses, and approved history stay intact.</p>
   <div class="next-paycheck-preview">
     <div><span>NEXT CHECK DATE</span><strong id="nextCyclePayDate">—</strong></div>
@@ -277,7 +287,7 @@
 <article><span>SAFE TO SPEND</span><strong id="planSpend">$0.00</strong><small>Until next payday</small></article>
 </div>
 <div aria-label="Paycheck allocation" class="allocation-bar"><i id="allocBills"></i><i id="allocReserve"></i><i id="allocSavings"></i><i id="allocDebt"></i><i id="allocSpend"></i></div>
-<div class="dexx-plan"><strong>DEXX RECOMMENDS</strong><p id="dexxPlanText">Add your paycheck and bill dates to create a plan.</p><div class="reserve-intel"><span>4.0.6 RESERVE MEMORY</span><small>Dexx remembers reserves only after you approve a payday plan, then carries those protected dollars into the next paycheck.</small></div></div>
+<div class="dexx-plan"><strong>DEXX RECOMMENDS</strong><p id="dexxPlanText">Add your paycheck and bill dates to create a plan.</p><div class="reserve-intel"><span>RESERVE MEMORY</span><small>Dexx remembers reserves only after you approve a payday plan, then carries those protected dollars into the next paycheck.</small></div></div>
 <div class="allocation-list" id="allocationList"></div>
 <div class="bill-coverage" id="billCoverage" aria-label="Which bills this check covers"></div>
 <div class="adjust-grid">
@@ -322,7 +332,7 @@
 </form><div class="managed-bills" id="managedBills"></div></section>
 <section class="card"><div class="section-head"><span>PROFILE SUMMARY</span><b id="profileReady">Needs setup</b></div><div class="profile-summary" id="profileSummary"></div></section></section>
 <section class="view" id="credit"><div class="page-title"><p>CREDIT LAB</p><h1>Debt Manager.</h1></div>
-<section class="card debt-overview"><div class="section-head"><span>4.0.7.2 DEBT INTELLIGENCE</span><b id="debtManagerCount">0 accounts saved</b></div><p class="manager-copy">Save each debt once. Dexx will track balances and choose where extra debt money should go after bills, reserves, and savings are protected.</p>
+<section class="card debt-overview"><div class="section-head"><span>DEBT INTELLIGENCE</span><b id="debtManagerCount">0 accounts saved</b></div><p class="manager-copy">Save each debt once. Dexx will track balances and choose where extra debt money should go after bills, reserves, and savings are protected.</p>
 <div class="debt-kpis"><div><span>TOTAL DEBT</span><strong id="debtTotalManaged">$0.00</strong></div><div><span>MONTHLY MINIMUMS</span><strong id="debtMinimumTotal">$0.00</strong></div><div><span>DEXX TARGET</span><strong id="debtTargetName">Add an account</strong></div></div>
 <label class="strategy-field">Payoff strategy<select id="debtStrategy"><option value="balanced">Balanced</option><option value="snowball">Snowball</option><option value="avalanche">Avalanche</option></select><small id="debtStrategyCopy">Balanced · high APR + quick wins</small></label></section>
 <form class="card debt-manager-form" id="debtManagerForm"><div class="section-head"><span>ADD DEBT ACCOUNT</span><b>Saved locally</b></div><input id="managerDebtId" type="hidden"/>
@@ -331,9 +341,9 @@
 <div class="form-grid"><label>APR (%)<input id="managerDebtApr" inputmode="decimal" min="0" max="100" step="0.01" placeholder="24.99" type="number"/></label><label>Account type<select id="managerDebtType"><option value="credit-card">Credit card</option><option value="loan">Loan</option><option value="medical">Medical</option><option value="other">Other</option></select></label></div>
 <div class="manager-actions"><button class="primary" id="saveManagedDebt" type="submit">SAVE DEBT ACCOUNT</button><button class="secondary" hidden id="cancelDebtEdit" type="button">CANCEL EDIT</button></div><p class="status" id="debtManagerStatus"></p></form>
 <section class="card"><div class="section-head"><span>YOUR DEBTS</span><b>Extra-payment target updates automatically</b></div><div class="managed-debts" id="managedDebts"></div></section>
-<section class="card" id="debtOutlookCard"><div class="section-head"><span>4.1.21.5 PAYOFF OUTLOOK</span><b id="debtOutlookStatus">Checking</b></div><p class="manager-copy">Estimates from current balances, APRs, and minimums — not guarantees. Extra payments use your per-check debt goal.</p><div id="debtOutlookBody"></div></section></section>
+<section class="card" id="debtOutlookCard"><div class="section-head"><span>PAYOFF OUTLOOK</span><b id="debtOutlookStatus">Checking</b></div><p class="manager-copy">Estimates from current balances, APRs, and minimums — not guarantees. Extra payments use your per-check debt goal.</p><div id="debtOutlookBody"></div></section></section>
 <section class="view" id="savings"><div class="page-title"><p>SAVINGS LAB</p><h1>Turn goals into experiments.</h1></div>
-<section class="card savings-overview"><div class="section-head"><span>4.0.8 SAVINGS INTELLIGENCE</span><b id="savingsGoalCount">0 goals saved</b></div><p class="manager-copy">Create as many savings goals as you need. Dexx will direct the savings portion of approved payday plans toward your active goals after bills and reserves are protected.</p>
+<section class="card savings-overview"><div class="section-head"><span>SAVINGS INTELLIGENCE</span><b id="savingsGoalCount">0 goals saved</b></div><p class="manager-copy">Create as many savings goals as you need. Dexx will direct the savings portion of approved payday plans toward your active goals after bills and reserves are protected.</p>
 <div class="savings-kpis"><div><span>TOTAL SAVED</span><strong id="savingsSavedTotal">$0.00</strong></div><div><span>GOAL TARGETS</span><strong id="savingsTargetTotal">$0.00</strong></div><div><span>DEXX TARGET</span><strong id="savingsDexxTarget">Add a goal</strong></div></div>
 <label class="strategy-field">Savings strategy<select id="savingsStrategy"><option value="priority">Priority first</option><option value="deadline">Nearest deadline first</option><option value="quick-win">Quick win</option></select><small id="savingsStrategyCopy">Priority first</small></label></section>
 <form class="card savings-goal-form" id="savingsGoalForm"><div class="section-head"><span>ADD SAVINGS GOAL</span><b>Saved locally</b></div><input id="savingsGoalId" type="hidden"/>
@@ -342,13 +352,13 @@
 <div class="form-grid"><label>Priority<select id="savingsGoalPriority"><option value="high">High</option><option value="medium" selected>Medium</option><option value="low">Low</option></select></label><label>Goal type<select id="savingsGoalCategory"><option value="emergency">Emergency fund</option><option value="car">Car / repairs</option><option value="home">Home</option><option value="travel">Travel</option><option value="purchase">Purchase</option><option value="general" selected>General</option></select></label></div>
 <div class="manager-actions"><button class="primary" id="saveSavingsGoal" type="submit">SAVE SAVINGS GOAL</button><button class="secondary" hidden id="cancelSavingsEdit" type="button">CANCEL EDIT</button></div><p class="status" id="savingsGoalStatus"></p></form>
 <section class="card"><div class="section-head"><span>YOUR SAVINGS GOALS</span><b>Payday contributions update on approval</b></div><div class="savings-goals-list" id="savingsGoalsList"></div></section>
-<section class="card" id="savingsOutlookCard"><div class="section-head"><span>4.1.21.5 SAVINGS MILESTONES</span><b id="savingsOutlookStatus">Checking</b></div><p class="manager-copy">Projected finish dates use your per-check savings amount. Set it in Payday Mode to see timelines.</p><div id="savingsOutlookBody"></div></section></section>
+<section class="card" id="savingsOutlookCard"><div class="section-head"><span>SAVINGS MILESTONES</span><b id="savingsOutlookStatus">Checking</b></div><p class="manager-copy">Projected finish dates use your per-check savings amount. Set it in Payday Mode to see timelines.</p><div id="savingsOutlookBody"></div></section></section>
 
 <section class="view" id="expense">
   <div class="page-title"><p>SPENDING LAB</p><h1>Expense Manager.</h1></div>
 
   <section class="card expense-overview">
-    <div class="section-head"><span>4.1.0 SPENDING MEMORY</span><b id="expenseCycleLabel">Current cycle</b></div>
+    <div class="section-head"><span>SPENDING MEMORY</span><b id="expenseCycleLabel">Current cycle</b></div>
     <p class="manager-copy">Record flexible spending during the week. Dexx subtracts these expenses from TRUE Safe-to-Spend without touching money already protected for bills, reserves, savings, or debt.</p>
     <div class="expense-kpis">
       <div><span>STARTING SAFE-TO-SPEND</span><strong id="expenseStarting">$0.00</strong></div>
@@ -381,7 +391,7 @@
   <div class="page-title"><p>REPORTS LAB</p><h1>Your money, explained.</h1></div>
 
   <section class="card reports-hero">
-    <div class="section-head"><span>4.1.1 FINANCIAL INTELLIGENCE</span><b id="reportCycleLabel">Current paycheck</b></div>
+    <div class="section-head"><span>FINANCIAL INTELLIGENCE</span><b id="reportCycleLabel">Current paycheck</b></div>
     <p class="manager-copy">Dexx turns your paycheck plan, protected money, expenses, savings, and debt into a clear report you can actually use.</p>
     <div class="report-kpis">
       <div><span>PAYCHECK</span><strong id="reportPaycheck">$0.00</strong></div>
@@ -457,7 +467,7 @@
   </section>
 
   <section class="card forecast-launch-card">
-    <div class="section-head"><span>4.1.6 FORECAST ENGINE</span><b>30-day look ahead</b></div>
+    <div class="section-head"><span>FORECAST ENGINE</span><b>30-day look ahead</b></div>
     <p class="manager-copy">See upcoming bills on a real calendar and preview the next 30 days using your recurring bills, pay schedule, latest entered paycheck, and savings rate.</p>
     <div class="forecast-mini-grid">
       <div><span>NEXT 30-DAY BILLS</span><strong id="reportForecastBills">$0.00</strong></div>
@@ -481,7 +491,7 @@
   <div class="page-title"><p>CALENDAR LAB</p><h1>See what’s coming.</h1></div>
 
   <section class="card money-date-bridge" id="moneyDateBridge">
-    <div class="section-head"><span>4.1.21.5 MONEY DATES BRIDGE</span><b id="moneyDateBridgeStatus">Checking journey</b></div>
+    <div class="section-head"><span>WHAT’S COMING UP</span><b id="moneyDateBridgeStatus">Checking journey</b></div>
     <h2 id="moneyDateBridgeTitle">Your next money date, connected to the plan.</h2>
     <p class="manager-copy" id="moneyDateBridgeCopy">Dexx connects the calendar to the step that is currently controlling your money cycle.</p>
     <div class="money-date-bridge-grid">
@@ -498,7 +508,7 @@
   </section>
 
   <section class="card forecast-hero-card">
-    <div class="section-head"><span>4.1.6 FORECAST ENGINE</span><b>Planning estimate</b></div>
+    <div class="section-head"><span>FORECAST ENGINE</span><b>Planning estimate</b></div>
     <p class="manager-copy">Dexx maps recurring bills and estimated paydays ahead so you can see pressure before it reaches your next check. Payday dates come from your saved schedule. Future paycheck amounts stay locked until Dexx has at least 3 confirmed real checks to learn from.</p>
     <div class="forecast-kpis">
       <div><span>BILLS · NEXT 30 DAYS</span><strong id="forecastBills30">$0.00</strong></div>
@@ -510,7 +520,7 @@
   </section>
 
   <section class="card smart-bills-card" id="smartBillsCard">
-    <div class="section-head"><span>4.1.21.5 SMART BILL CALENDAR</span><b id="smartBillsStatus">Checking bills</b></div>
+    <div class="section-head"><span>SMART BILL CALENDAR</span><b id="smartBillsStatus">Checking bills</b></div>
     <p class="manager-copy" id="smartBillsSummary">Every bill gets a clear status and a place in your paycheck plan.</p>
     <div class="pressure-strip" id="pressureStrip" aria-label="Upcoming bill pressure per payday"></div>
     <div id="smartBillsGroups"></div>
@@ -545,7 +555,7 @@
   </section>
 
   <section class="card memory-guard-card">
-    <div class="section-head"><span>4.1.5 FINANCIAL MEMORY GUARD</span><b id="memoryStatusLabel">Local only</b></div>
+    <div class="section-head"><span>FINANCIAL MEMORY GUARD</span><b id="memoryStatusLabel">Local only</b></div>
     <p class="manager-copy">Dexx now stores your Financial Lab working history in two on-device storage layers and keeps them synchronized. Export a backup periodically for protection outside Safari and the installed app.</p>
 
     <div class="memory-warning">
@@ -573,7 +583,7 @@
   </section>
 
   <section class="card safety-recovery-card">
-    <div class="section-head"><span>4.1.7.3.1 SAFETY &amp; RECOVERY</span><b id="recoveryPointCount">0 safe states</b></div>
+    <div class="section-head"><span>SAFETY &amp; RECOVERY</span><b id="recoveryPointCount">0 safe states</b></div>
     <p class="manager-copy">Mistakes happen. Financial Lab now keeps short-term local recovery points before saved changes so you can undo, restore, or reset without blindly wiping the rest of your setup.</p>
 
     <div class="recovery-hero">
@@ -614,7 +624,7 @@
   <div class="page-title"><p>START HERE</p><h1>Build your Financial Lab.</h1></div>
 
   <section class="card setup-hero-card">
-    <div class="section-head"><span>4.1.21.5 GUIDED LAB SETUP</span><b id="setupHeroStatus">Getting ready</b></div>
+    <div class="section-head"><span>GUIDED LAB SETUP</span><b id="setupHeroStatus">Getting ready</b></div>
     <h2>Tell Dexx about your money first.</h2>
     <p class="manager-copy">Financial Lab can only build a useful plan from the information you give it. Start with the essentials, then add bills, debt, savings, and spending now or finish those pieces later.</p>
     <div class="setup-readiness-meter" aria-label="Lab setup completeness"><i id="setupReadinessBar"></i></div>
@@ -678,8 +688,9 @@
 
 <section class="view" id="dexx"><div class="dexx-header"><button data-go="laboratory">←</button><div><h1>DEXX</h1><p>Your Financial Scientist</p></div><img alt="" aria-hidden="true" class="dexx-chat-image" onerror="this.onerror=null;this.style.display='none'" src="dexx-character-clean.jpg"/></div><div class="chat"><div class="bubble" id="dexxReply">Hey Rob! 👋 I’m Dexx. How can I help you today?</div><button data-question="score">How can I improve my score? <span>›</span></button><button data-question="spending">Analyze my spending <span>›</span></button><button data-question="challenge">Give me a money challenge <span>›</span></button><button data-question="saving">Any tips for saving more? <span>›</span></button><form id="chatForm"><input id="chatInput" placeholder="Ask Dexx anything..."/><button type="submit">➤</button></form></div></section>
 </main>
-<nav class="bottom-nav"><button class="active" data-go="laboratory"><b>⚗</b><span>Laboratory</span></button><button data-go="budget"><b>▣</b><span>Budget Lab</span></button><button data-go="credit"><b>◇</b><span>Credit Lab</span></button><button data-go="savings"><b>▤</b><span>Savings Lab</span></button><button data-go="more"><b>•••</b><span>More</span></button></nav>
-</div><script src="app.js?v=4.1.21.5"></script>
+<div class="journey-bar" id="journeyBar"><div class="jb-text"><span id="journeyBarStep">YOUR MONEY JOURNEY</span><strong id="journeyBarTitle">Checking next step</strong></div><button id="journeyBarAction" type="button">OPEN</button></div>
+<nav class="bottom-nav"><button class="active" data-go="laboratory"><b>⚗</b><span>Today</span></button><button data-go="budget"><b>▣</b><span>Payday</span></button><button data-go="credit"><b>◇</b><span>Debt</span></button><button data-go="savings"><b>▤</b><span>Savings</span></button><button data-go="more"><b>•••</b><span>More</span></button></nav>
+</div><script src="app.js?v=4.1.21.6"></script>
 <script>
 (function(){
   function wireBuildButton(){
@@ -710,7 +721,7 @@
   // 4.1.6.1: keep reliable PWA updates while polishing Calendar amount display.
   if('serviceWorker' in navigator){
     window.addEventListener('load',function(){
-      navigator.serviceWorker.register('./service-worker.js?v=4.1.21.5',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('./service-worker.js?v=4.1.21.6',{updateViaCache:'none'}).then(function(reg){
         reg.update().catch(function(){});
         setInterval(function(){ reg.update().catch(function(){}); }, 60000);
       }).catch(function(err){console.warn('Service worker registration failed',err)});
