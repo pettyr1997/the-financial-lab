@@ -41,7 +41,12 @@ async function requestDurableStorage(){
 }
 async function initializePersistentMemory(){
   const mirror=await readMemoryMirror();
-  const localRaw=localStorage.getItem(STORAGE_KEY);
+  let localRaw=null;
+  try{localRaw=localStorage.getItem(STORAGE_KEY)}catch(_){localRaw=null}
+  // Save-hardening (beta fix): a corrupt saved payload counts as no payload —
+  // the device backup layer (mirror) is tried first, factory defaults only if
+  // it is empty too.
+  if(localRaw){try{JSON.parse(localRaw)}catch(_){console.warn('Financial Lab: saved data was unreadable; trying the device backup layer.');localRaw=null}}
   if(!localRaw&&mirror&&mirror.data){
     localStorage.setItem(STORAGE_KEY,JSON.stringify(mirror.data));
     data=load();normalizeApprovedPlanFunding();render();
@@ -1938,15 +1943,41 @@ function paycheckPlan(){
   const rememberedReserve=[...dueNowBills,...upcomingBills].reduce((s,b)=>s+Number(b.alreadyProtected||0),0);return {paycheck,balance,available,today,nextPay,reserveEnd,planningEnd,dueNowBills,upcomingBills,laterBills,dueNow,upcomingTotal,reserveTarget,rememberedReserve,desiredSavings,savingsGoalTarget,desiredDebt,targetDebt,managedDebtTotal,payNow,reserve,savings:chosenSavings,debtPayment:chosenDebt,expenseCycleStart,expenseCycleEnd,safeBeforeExpenses,currentExpenses,expenseTotal,overspent,safeToSpend,shortfall:Math.max(0,dueNow-payNow),reserveShortfall:Math.max(0,reserveTarget-reserve)};
 }
 function calc(){const p=paycheckPlan(),bills=[...p.dueNowBills,...p.upcomingBills],billTotal=bills.filter(b=>!b.paid).reduce((s,b)=>s+Number(b.amount||0),0);let score=35;if(p.paycheck>0)score+=15;if(bills.length)score+=10;if(p.savings>0)score+=15;if(p.shortfall===0&&p.paycheck>0)score+=15;if(p.reserveShortfall===0&&p.upcomingBills.length)score+=5;if(data.approvedPlan)score+=5;const missionDone=Object.values(data.missions).filter(Boolean).length;return {...p,bills,billTotal,cash:p.safeToSpend,score:Math.min(score,100),progress:Math.round(missionDone/4*100),missionDone}}
+// Save-hardening (beta fix): a throwing device-storage write (private
+// browsing, quota exceeded) must never fail silently — the user sees an
+// error instead of a tap that looks ignored. The IndexedDB mirror is still
+// attempted (separate storage layer) and the screen still re-renders.
+let storageErrorTimer=null;
+function showStorageError(message){
+  try{
+    let bar=document.getElementById('financialLabStorageError');
+    if(!bar){
+      bar=document.createElement('div');
+      bar.id='financialLabStorageError';
+      bar.setAttribute('role','alert');
+      bar.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;padding:14px 16px;background:#7f1d1d;color:#fff;font-size:14px;line-height:1.4;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.35)';
+      document.body.prepend(bar);
+    }
+    bar.textContent=message;
+    bar.hidden=false;
+    clearTimeout(storageErrorTimer);
+    storageErrorTimer=setTimeout(()=>{bar.hidden=true},15000);
+  }catch(_){/* an error path must never throw */}
+}
 function save(options={}){
   const context=pendingRecoveryContext||{label:'Financial Lab update',detail:'A saved Financial Lab value changed.',type:'change'};
-  if(!options.skipRecovery){pushRecoveryPoint(lastSavedSnapshot,context.label,context.detail,context.type)}
-  data.lastUpdated=new Date().toISOString();
-  localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
-  lastSavedSnapshot=cloneFinancialData(data);
-  pendingRecoveryContext=null;
+  try{
+    if(!options.skipRecovery){pushRecoveryPoint(lastSavedSnapshot,context.label,context.detail,context.type)}
+    data.lastUpdated=new Date().toISOString();
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+    lastSavedSnapshot=cloneFinancialData(data);
+    pendingRecoveryContext=null;
+    if(!options.skipActivity)logRecoveryActivity(context.label,context.detail,context.type);
+  }catch(err){
+    console.error('Financial Lab could not write to device storage.',err);
+    showStorageError('Heads up — Financial Lab could not save to this device\u2019s storage (private browsing or storage full). What you see on screen is not saved yet.');
+  }
   writeMemoryMirror(data);
-  if(!options.skipActivity)logRecoveryActivity(context.label,context.detail,context.type);
   render();
 }
 function billRows(host,bills){if(!host)return;host.replaceChildren();if(!bills.length){host.innerHTML='<div class="empty-copy">No bills in this payday window. Manage recurring bills in Financial Profile.</div>';return}bills.forEach(b=>{const row=document.createElement('div');row.className=`bill-row${b.paid?' paid':''}`;const btn=document.createElement('button');btn.className='check';btn.textContent=b.paid?'✓':'';btn.setAttribute('aria-label',b.paid?'Mark unpaid':'Mark paid');btn.onclick=()=>toggleBillPaidOccurrence(b);const name=document.createElement('span');const held=Number(b.alreadyProtected||protectedFor(b));name.innerHTML=`${b.name||'Bill'} <em class="priority ${b.priority}">${b.priority}</em>${b.autopay?' <em class="autopay">auto</em>':''}${held>0?` <em class="reserve-held">${money(held)} reserved</em>`:''}`;const amt=document.createElement('strong');amt.textContent=money(b.amount);const date=document.createElement('small');date.textContent=b.paid?'Paid':b.date?dateText(b.date,{month:'short',day:'numeric'}):'TBD';row.append(btn,name,amt,date);host.append(row)})}
@@ -2622,7 +2653,7 @@ function render(){reconcileExecutionState();const c=calc(),hour=new Date().getHo
   ['paycheck','currentBalance','saveAmount','debtAmount','debtGoal','savingsRate'].forEach(id=>{if($(id))$(id).value=data[id]||(id==='savingsRate'?10:'')});if($('payDate'))$('payDate').value=iso(dateAtNoon(data.payDate)||new Date());if($('nextPayday'))$('nextPayday').value=iso(dateAtNoon(data.nextPayday))||'';
   if($('planPayNow')){const d=commandCenterPlan(c);$('planPayNow').textContent=money(d.payNow);$('planReserve').textContent=money(d.reserve);$('planSavings').textContent=money(d.savings);$('planDebt').textContent=money(d.debtPayment);$('planSpend').textContent=money(d.safeToSpend);$('planStatus').textContent=d.shortfall?'Needs attention':data.approvedPlan?'Approved · executing':d.paycheck?'Plan ready':'Ready';$('dexxPlanText').textContent=recommendation(d);const total=d.paycheck||d.available||1;[['allocBills',d.payNow],['allocReserve',d.reserve],['allocSavings',d.savings],['allocDebt',d.debtPayment],['allocSpend',d.safeToSpend]].forEach(([id,val])=>$(id).style.width=`${Math.max(0,val/total*100)}%`);allocationRows(d);renderBillCoverage(d);$('customSavings').value=data.customSavings??'';$('customDebt').value=data.customDebt??'';const step=!c.paycheck?1:!c.bills.length?2:!data.approvedPlan?4:5;$('workflowStatus').textContent=`Step ${step} of 5`;$('workflowCopy').textContent=step===1?'Enter your check and payday dates.':step===2?'Add and confirm every bill coming before and after payday.':step===4?'Review Dexx’s recommendation and adjust only if needed.':'Plan approved. Track the experiment until next payday.';document.querySelectorAll('.step-track i').forEach((x,i)=>x.classList.toggle('active',i<step));const ex=experiment(c);$('experimentTitle').textContent=ex.title;$('experimentText').textContent=ex.text;$('experimentBar').style.width=`${ex.progress}%`;$('experimentProgress').textContent=`${ex.progress}% complete`;renderHistory()}}
 function show(id){document.body.dataset.view=id;document.body.classList.remove('front-door-active');document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===id));document.querySelectorAll('.bottom-nav button').forEach(b=>b.classList.toggle('active',b.dataset.go===id));history.replaceState(null,'','#'+id);scrollTo({top:0,behavior:'smooth'})}
-document.addEventListener('click',e=>{const go=e.target.closest('[data-go]');if(document.body.classList.contains('front-door-active'))return;if(go){e.preventDefault();show(go.dataset.go);const target=go.dataset.journeyScroll;if(target)setTimeout(()=>{const el=target==='execution'?$('paydayExecutionMode'):target==='next'?document.querySelector('.next-paycheck-launchpad'):document.querySelector('.paycheck-planner');el?.scrollIntoView({behavior:'smooth',block:'start'})},120)}const q=e.target.closest('[data-question]');if(q){const c=calc(),answers={score:`Your score is ${c.score}. Cover immediate bills, protect ${money(c.savings)} in savings, and stay within ${money(c.safeToSpend)}.`,spending:`Your safe-to-spend amount is ${money(c.safeToSpend)} through ${dateText(c.nextPay,{month:'short',day:'numeric'})}.`,challenge:experiment(c).text,saving:`I recommend ${money(c.savings)} this payday${c.savingsGoalTarget?` toward ${c.savingsGoalTarget.name}`:''}. Increase it only after immediate and upcoming bills are protected.`};$('dexxReply').textContent=answers[q.dataset.question]}});
+document.addEventListener('click',e=>{const go=e.target.closest('[data-go]');if(document.body.classList.contains('front-door-active'))return;if(go){e.preventDefault();show(go.dataset.go);const target=go.dataset.journeyScroll;if(target)setTimeout(()=>{const el=target==='execution'?$('paydayExecutionMode'):target==='next'?document.querySelector('.next-paycheck-launchpad'):document.querySelector('.paycheck-planner');el?.scrollIntoView({behavior:'smooth',block:'start'})},120)}const q=e.target.closest('[data-question]');if(q){const c=calc(),answers={score:`Your score is ${c.score}. Cover immediate bills, protect ${money(c.savings)} in savings, and stay within ${money(c.safeToSpend)}.`,spending:`Your safe-to-spend amount is ${money(c.safeToSpend)} through ${dateText(c.nextPay,{month:'short',day:'numeric'})}.`,challenge:experiment(c).text,saving:`I recommend ${money(c.savings)} this payday${c.savingsGoalTarget?` toward ${c.savingsGoalTarget.name}`:''}. Increase it only after immediate and upcoming bills are protected.`};dexxAsk(q.firstChild.textContent.trim(),answers[q.dataset.question])}});
 document.addEventListener('click',e=>{
   const command=e.target.closest('[data-command]');
   if(!command)return;
@@ -2938,7 +2969,59 @@ $('undoLastChange')?.addEventListener('click',undoLastFinancialChange);
 $('restoreRecoveryPoint')?.addEventListener('click',restoreSelectedRecoveryPoint);
 document.querySelectorAll('[data-reset-area]').forEach(button=>button.addEventListener('click',()=>resetFinancialArea(button.dataset.resetArea)));
 $('fullFinancialLabReset')?.addEventListener('click',fullFinancialLabReset);
-$('chatForm').addEventListener('submit',e=>{e.preventDefault();const text=$('chatInput').value.trim();if(!text)return;const c=calc();$('dexxReply').textContent=`Based on this payday, cover ${money(c.payNow)} now, protect ${money(c.reserve)} for upcoming bills, save ${money(c.savings)}${c.savingsGoalTarget?` toward ${c.savingsGoalTarget.name}`:''}, pay ${money(c.debtPayment)} toward ${c.targetDebt?.name||'debt'}, and limit flexible spending to ${money(c.safeToSpend)}. You have recorded ${money(c.expenseTotal)} of flexible expenses this cycle.`;$('chatInput').value=''});
+/* 4.1.22.0 — AI Dexx chat (talk-only).
+   The app sends each question plus a snapshot of the user's real Lab numbers
+   to the Supabase Edge Function "dexx-chat", which holds the Anthropic API
+   key server-side. The key NEVER lives in this code.
+   The two __FL_ placeholders are stamped at build time once Robert supplies
+   the Supabase Project URL + anon key. Until then — and whenever the
+   network, the function, or the API is unreachable (or the spend cap is hit)
+   — chat quietly falls back to the built-in scripted Dexx answers. */
+const FL_DEXX={url:'https://udmvocamaqspwvqwamnf.supabase.co',anonKey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkbXZvY2FtYXFzcHd2cXdhbW5mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI3OTI4NjAsImV4cCI6MjEwODM2ODg2MH0.hDut94wiFK4CB7AP-WkW1CVWitCKQzX7RBUK--GJ5aA',fn:'dexx-chat'};
+function dexxAIReady(){return typeof FL_DEXX.url==='string'&&!/^__FL_/.test(FL_DEXX.url)&&!/^__FL_/.test(FL_DEXX.anonKey)}
+function dexxSnapshotText(c){
+  const j=(typeof moneyJourneyState==='function')?moneyJourneyState(c):null;
+  const idx=j&&j.current?j.steps.indexOf(j.current):-1;
+  const step=j&&j.current?j.current.title:'setup';
+  const bills=[...(c.dueNowBills||[]),...(c.upcomingBills||[])].filter(b=>!b.paid);
+  const billLines=bills.slice(0,12).map(b=>`- ${b.name||'Bill'}: ${money(Number(b.amount||0))} due ${dateText(b.occurrenceDate||b.date,{month:'short',day:'numeric'})}${b.status==='overdue'?' (overdue)':''}`);
+  const confirmed=c.paycheck>0;
+  return [
+    `Journey step ${idx+1} of 7: ${step}.`,
+    `Safe-to-spend: ${money(c.safeToSpend)}${confirmed?' (live — paycheck confirmed)':' (planned — paycheck not confirmed yet)'}.`,
+    `This check: ${money(c.paycheck||0)} expected${c.nextPay?'; next payday '+dateText(c.nextPay,{month:'short',day:'numeric'}):''}.`,
+    `Cover now: ${money(c.payNow)}; protect for upcoming bills: ${money(c.reserve)}${c.reserveShortfall>0?` (shortfall ${money(c.reserveShortfall)})`:''}; savings this check: ${money(c.savings)}${c.savingsGoalTarget?` toward ${c.savingsGoalTarget.name}`:''}; debt payment: ${money(c.debtPayment)}${c.targetDebt?` toward ${c.targetDebt.name}`:''}.`,
+    bills.length?`Bills before next payday (${bills.length}):\n${billLines.join('\n')}`:'No bills recorded before next payday.',
+    `Flexible spending recorded this cycle: ${money(c.expenseTotal)}${c.overspent?' (over the safe amount)':''}.`,
+    `Health score: ${c.score}.`
+  ].join('\n');
+}
+function dexxAddBubble(text,who){
+  const host=$('dexxHistory');if(!host)return null;
+  const b=document.createElement('div');b.className='bubble dexx-'+who;
+  b.textContent=text; /* textContent by design: user/AI text can never inject markup */
+  host.appendChild(b);b.scrollIntoView({block:'end'});return b;
+}
+function dexxScriptedAnswer(){const c=calc();return `Based on this payday, cover ${money(c.payNow)} now, protect ${money(c.reserve)} for upcoming bills, save ${money(c.savings)}${c.savingsGoalTarget?` toward ${c.savingsGoalTarget.name}`:''}, pay ${money(c.debtPayment)} toward ${c.targetDebt?.name||'debt'}, and limit flexible spending to ${money(c.safeToSpend)}. You have recorded ${money(c.expenseTotal)} of flexible expenses this cycle.`}
+/* One entry point for every Dexx question. `scripted` is the built-in answer
+   (used for quick questions, or when AI is unavailable). Free text goes to
+   the AI when the keys are stamped. */
+let dexxSession=[]; /* {role:'user'|'assistant',content} — this chat session only */
+function dexxAsk(question,scripted){
+  dexxAddBubble(question,'user');
+  if(scripted!=null){dexxAddBubble(scripted,'dexx');return}
+  if(!dexxAIReady()){dexxAddBubble(dexxScriptedAnswer(),'dexx');return}
+  const thinking=dexxAddBubble('Dexx is thinking…','thinking');
+  const messages=[...dexxSession,{role:'user',content:question}].slice(-12);
+  const context=dexxSnapshotText(calc());
+  fetch(`${FL_DEXX.url}/functions/v1/${FL_DEXX.fn}`,{method:'POST',
+    headers:{'content-type':'application/json','apikey':FL_DEXX.anonKey,'authorization':'Bearer '+FL_DEXX.anonKey},
+    body:JSON.stringify({messages,context})})
+  .then(r=>r.json().then(d=>({ok:r.ok,d})))
+  .then(({ok,d})=>{if(thinking)thinking.remove();if(!ok||!d||!d.reply)throw new Error('dexx-ai');dexxSession.push({role:'user',content:question},{role:'assistant',content:d.reply});dexxAddBubble(d.reply,'ai')})
+  .catch(()=>{if(thinking)thinking.remove();dexxAddBubble(dexxScriptedAnswer(),'dexx')});
+}
+$('chatForm').addEventListener('submit',e=>{e.preventDefault();const text=$('chatInput').value.trim();if(!text)return;dexxAsk(text);$('chatInput').value=''});
 document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>{const type=b.dataset.action;if(type==='income'){show('budget');setTimeout(()=>$('paycheck').focus(),200);return}if(type==='expense'){show('expense');setTimeout(()=>{resetExpenseForm();$('expenseName')?.focus()},150);return}});
 
 function openFinancialLab(destination='laboratory'){

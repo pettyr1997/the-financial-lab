@@ -1,1 +1,12 @@
-{"description":"Financial Lab PWA — Dexx-powered personal finance lab","engines":{"node":">=18"},"name":"financial-lab","private":true,"scripts":{"test":"node tests/test-continuity.mjs && node tests/test-bills.mjs && node tests/test-bundle.mjs && node tests/test-boot.mjs"},"version":"4.1.21.6"}
+{
+  "description": "Financial Lab PWA — Dexx-powered personal finance lab",
+  "engines": {
+    "node": ">=18"
+  },
+  "name": "financial-lab",
+  "private": true,
+  "scripts": {
+    "test": "node tests/test-continuity.mjs && node tests/test-bills.mjs && node tests/test-bundle.mjs && node tests/test-boot.mjs && node tests/test-dexx-chat.mjs"
+  },
+  "version": "4.1.22.0"
+}
