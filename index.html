@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/><meta content="#050807" name="theme-color"/><meta content="Financial Lab powered by Dexx" name="description"/><link href="manifest.webmanifest" rel="manifest"/><link href="icon.svg" rel="icon"/><link href="icon-192.png" rel="apple-touch-icon"/><link href="styles.css?v=4.1.22.0" rel="stylesheet"/><meta name="apple-mobile-web-app-capable" content="yes"/><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/><meta name="apple-mobile-web-app-title" content="Financial Lab"/><title>Financial Lab — Powered by Dexx</title><meta content="4.1.22.0" name="financial-lab-version"/><meta name="financial-lab-release" content="4.1.22.0-payday-truth-cash-flow-learning"/></head>
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/><meta content="#050807" name="theme-color"/><meta content="Financial Lab powered by Dexx" name="description"/><link href="manifest.webmanifest" rel="manifest"/><link href="icon.svg" rel="icon"/><link href="icon-192.png" rel="apple-touch-icon"/><link href="styles.css?v=4.1.22.1" rel="stylesheet"/><meta name="apple-mobile-web-app-capable" content="yes"/><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/><meta name="apple-mobile-web-app-title" content="Financial Lab"/><title>Financial Lab — Powered by Dexx</title><meta content="4.1.22.1" name="financial-lab-version"/><meta name="financial-lab-release" content="4.1.22.1-payday-truth-cash-flow-learning"/></head>
 <body class="front-door-active">
 <div class="front-door" id="frontDoor">
   <div class="front-door-glow"></div>
@@ -689,8 +689,9 @@
 <section class="view" id="dexx"><div class="dexx-header"><button data-go="laboratory">←</button><div><h1>DEXX</h1><p>Your Financial Scientist</p></div><img alt="" aria-hidden="true" class="dexx-chat-image" onerror="this.onerror=null;this.style.display='none'" src="dexx-character-clean.jpg"/></div><div class="chat"><div class="chat-history" id="dexxHistory"><div class="bubble" id="dexxReply">Hey Rob! 👋 I'm Dexx. How can I help you today?</div></div><p class="chat-privacy">🔒 Chat is the one part of the Lab that leaves your phone — your question plus your Lab numbers go to our AI (Anthropic) to write the answer. Never used for training.</p><button data-question="score">How can I improve my score? <span>›</span></button><button data-question="spending">Analyze my spending <span>›</span></button><button data-question="challenge">Give me a money challenge <span>›</span></button><button data-question="saving">Any tips for saving more? <span>›</span></button><form id="chatForm"><input id="chatInput" placeholder="Ask Dexx anything..."/><button type="submit">➤</button></form></div></section>
 </main>
 <div class="journey-bar" id="journeyBar"><div class="jb-text"><span id="journeyBarStep">YOUR MONEY JOURNEY</span><strong id="journeyBarTitle">Checking next step</strong></div><button id="journeyBarAction" type="button">OPEN</button></div>
+<button class="dexx-fab" id="dexxFab" type="button" data-go="dexx" aria-label="Ask Dexx"><img src="dexx-character-clean.jpg" alt=""></button>
 <nav class="bottom-nav"><button class="active" data-go="laboratory"><b>⚗</b><span>Today</span></button><button data-go="budget"><b>▣</b><span>Payday</span></button><button data-go="credit"><b>◇</b><span>Debt</span></button><button data-go="savings"><b>▤</b><span>Savings</span></button><button data-go="more"><b>•••</b><span>More</span></button></nav>
-</div><script src="app.js?v=4.1.22.0"></script>
+</div><script src="app.js?v=4.1.22.1"></script>
 <script>
 (function(){
   function wireBuildButton(){
@@ -721,7 +722,7 @@
   // 4.1.6.1: keep reliable PWA updates while polishing Calendar amount display.
   if('serviceWorker' in navigator){
     window.addEventListener('load',function(){
-      navigator.serviceWorker.register('./service-worker.js?v=4.1.22.0',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('./service-worker.js?v=4.1.22.1',{updateViaCache:'none'}).then(function(reg){
         reg.update().catch(function(){});
         setInterval(function(){ reg.update().catch(function(){}); }, 60000);
       }).catch(function(err){console.warn('Service worker registration failed',err)});
