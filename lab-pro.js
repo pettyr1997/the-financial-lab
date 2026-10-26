@@ -117,6 +117,70 @@ function flpExportYear(){
   return rows.length-1;
 }
 
+/* ───────────── 3b. ONE-PAGE BUSINESS SNAPSHOT (PDF) ───────────── */
+/* A clean year-to-date snapshot for a bank, CPA, or loan officer. No new
+   dependency: it opens a printable page and uses the device print sheet,
+   where "Save to Files" / "Save as PDF" produces the PDF. */
+function flpSnapshotData(){
+  const b=flpBiz(),s=flxBizState(),year=String(new Date().getFullYear());
+  const inY=d=>String(d||'').startsWith(year);
+  const inv=(b.invoices||[]).filter(i=>i.status==='paid'&&inY(i.paidDate));
+  const income=flpSum(inv,i=>i.received||i.amount);
+  const contrYTD=flpSum((b.contractorPayments||[]).filter(p=>inY(p.date)));
+  const expYTD=flpSum((b.expenses||[]).filter(x=>inY(x.date)));
+  const trips=(b.mileage||[]).filter(t=>inY(t.date));
+  const miles=flpSum(trips,t=>t.miles),mileage=flpSum(trips,flpTripDeduction);
+  const draws=flpSum((b.draws||[]).filter(d=>inY(d.date)));
+  const expenses=expYTD+contrYTD,profit=income-expenses,taxable=profit-mileage;
+  const byCat={};(b.expenses||[]).filter(x=>inY(x.date)).forEach(x=>{byCat[x.category]=(byCat[x.category]||0)+Number(x.amount||0)});if(contrYTD)byCat.contractors=(byCat.contractors||0)+contrYTD;
+  const topCats=Object.entries(byCat).sort((a,c)=>c[1]-a[1]).slice(0,4);
+  return {year,name:b.name||'My Business',income,expenses,profit,taxable,mileage,miles,draws,cash:s.cash,taxReserve:s.taxReserve,taxAsideYTD:flpSum(inv,i=>i.taxSetAside),openTotal:s.openTotal,openCount:s.open.length,overdueCount:s.overdue.length,overdueTotal:flpSum(s.overdue),topCats,nextQ:s.nextQ,generated:new Date().toLocaleDateString(undefined,{month:'long',day:'numeric',year:'numeric'})};
+}
+function flpSnapshotHTML(d){
+  const row=(l,v,cls='')=>`<tr class="${cls}"><td>${l}</td><td>${v}</td></tr>`;
+  const cats=d.topCats.map(([k,v])=>row('&nbsp;&nbsp;'+escapeHTML(FLX_BIZ_CATS[k]||k),money(v),'sub')).join('');
+  const q=d.nextQ;
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHTML(d.name)} — Business Snapshot ${d.year}</title><style>`
+  +`*{box-sizing:border-box}body{font-family:-apple-system,Helvetica,Arial,sans-serif;color:#111;margin:0.5in}`
+  +`h1{font-size:22px;margin:0}h2{font-size:14px;margin:22px 0 8px;border-bottom:2px solid #111;padding-bottom:4px}`
+  +`.sub{color:#555}.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}`
+  +`.stat{border:1px solid #ccc;border-radius:8px;padding:12px}.stat small{display:block;color:#555;text-transform:uppercase;letter-spacing:.04em}.stat b{font-size:20px}`
+  +`table{width:100%;border-collapse:collapse}td{padding:6px 0;border-bottom:1px solid #eee}td:last-child{text-align:right;font-variant-numeric:tabular-nums}`
+  +`tr.total td{font-weight:700;border-top:2px solid #111}tr.sub td{color:#555}`
+  +`.box{border:1px solid #ccc;border-radius:8px;padding:12px;margin-top:12px}.box b{font-size:18px}`
+  +`footer{margin-top:22px;font-size:11px;color:#555}@page{margin:0.5in}`
+  +`</style></head><body>`
+  +`<h1>${escapeHTML(d.name)}</h1><p class="sub">Business Snapshot · Year to date ${d.year} · Prepared ${escapeHTML(d.generated)}</p>`
+  +`<div class="stats">`
+  +`<div class="stat"><small>Income (year to date)</small><b>${money(d.income)}</b></div>`
+  +`<div class="stat"><small>Profit (year to date)</small><b>${money(d.profit)}</b></div>`
+  +`<div class="stat"><small>Business cash now</small><b>${money(d.cash)}</b></div>`
+  +`<div class="stat"><small>Tax reserve</small><b>${money(d.taxReserve)}</b></div></div>`
+  +`<h2>Year to date</h2><table>`
+  +row('Income (paid invoices)',money(d.income))
+  +row('Expenses',money(d.expenses))
+  +cats
+  +row('Profit',money(d.profit),'total')
+  +row('Mileage deduction · '+d.miles.toLocaleString()+' mi',money(d.mileage),'sub')
+  +row('Estimated taxable profit',money(d.taxable),'total')
+  +row('Owner pay',money(d.draws),'sub')
+  +`</table>`
+  +`<h2>Taxes</h2><div class="box">Set aside and not yet paid: <b>${money(d.taxReserve)}</b><br><span class="sub">${escapeHTML(q.label)} estimated tax due ${escapeHTML(dateText(q.due,{month:'long',day:'numeric',year:'numeric'}))} · ${money(q.setAside)} set aside for that quarter.</span></div>`
+  +`<h2>What clients owe you</h2><div class="box"><b>${money(d.openTotal)}</b> across ${d.openCount} open invoice${d.openCount===1?'':'s'}${d.overdueCount?` · <b>${money(d.overdueTotal)}</b> overdue from ${d.overdueCount} client${d.overdueCount===1?'':'s'}`:''}.</div>`
+  +`<footer>Prepared from Financial Lab records. Figures are estimates from your own entries, not a tax filing — have a tax professional confirm final numbers before sending this anywhere official.</footer>`
+  +`</body></html>`;
+}
+function flpExportSnapshot(){
+  const d=flpSnapshotData();
+  const w=window.open('','_blank');
+  const st=$('bizExportStatus');
+  if(!w){if(st)st.textContent='Popup blocked — allow popups for this app and try again.';return false}
+  w.document.write(flpSnapshotHTML(d));w.document.close();w.focus();
+  setTimeout(()=>{try{w.print()}catch(_){}},250);
+  if(st)st.textContent='Snapshot ready — use the print sheet to save it as a PDF.';
+  return true;
+}
+
 /* ───────────── 4. REPEAT INVOICES + CONTRACTORS ───────────── */
 function flpRunRepeatInvoices(){
   const b=flpBiz();let made=0;const today=dateAtNoon(new Date());
@@ -209,6 +273,7 @@ document.addEventListener('click',async e=>{
   if(t.closest('#flpReminderSent')&&inv){inv.reminders=[...(inv.reminders||[]),flxTodayIso()];setRecoveryContext(`Reminder sent: ${inv.client}`,'Follow-up logged.','change');save();sheet.hidden=true;return}
   if(t.closest('#bizReportPrev')||t.closest('#bizReportNext')){const [y,m]=flpReportMonth.split('-').map(Number);flpReportMonth=iso(new Date(y,m-1+(t.closest('#bizReportPrev')?-1:1),15)).slice(0,7);flpRenderReport();return}
   if(t.closest('#bizExportBtn')){const n=flpExportYear();$('bizExportStatus').textContent=`Downloaded ${n} records for your accountant.`;return}
+  if(t.closest('#bizSnapshotBtn')){flpExportSnapshot();return}
 });
 document.addEventListener('change',e=>{if(e.target.id==='bizContrPick'){const w=$('bizContrNameWrap');if(w)w.hidden=!!e.target.value}});
 
