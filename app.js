@@ -3166,3 +3166,18 @@ function renderJourneyBar(c){
   if(src&&btn){btn.textContent=src.textContent;btn.disabled=!!src.disabled;btn.style.display=src.disabled?'none':''}
 }
 {const jb=$('journeyBarAction');if(jb)jb.addEventListener('click',()=>{const a=$('moneyJourneyAction');if(a&&!a.disabled)a.click()});}
+
+/* ───────────── Quick actions drawer (hamburger menu) ───────────── */
+(function(){
+  const drawer=document.getElementById('quickDrawer');if(!drawer)return;
+  function openDrawer(){drawer.hidden=false;document.body.style.overflow='hidden';}
+  function closeDrawer(){drawer.hidden=true;if(!document.body.classList.contains('front-door-active'))document.body.style.overflow='';}
+  const menuBtn=document.getElementById('menuBtn');
+  if(menuBtn)menuBtn.addEventListener('click',function(e){e.preventDefault();if(drawer.hidden){openDrawer();}else{closeDrawer();}});
+  drawer.addEventListener('click',function(e){
+    if(e.target.closest('[data-quick-close]')){closeDrawer();return;}
+    if(e.target.closest('button'))closeDrawer();
+  });
+  const doorBtn=document.getElementById('drawerFrontDoorBtn');
+  if(doorBtn)doorBtn.addEventListener('click',function(e){e.preventDefault();openFrontDoor();});
+})();
