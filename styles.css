@@ -1306,3 +1306,8 @@ body[data-view="dexx"] .dexx-fab,body[data-view="start"] .dexx-fab,body.front-do
 .quick-list button i{font-style:normal;color:var(--green);font-size:22px;width:28px;text-align:center;flex:none}
 .quick-list button span{font-size:17px}
 .quick-list button:last-child{border-bottom:0}
+
+/* ── Notch clearance: the topbar sat under the status bar, making the hamburger untappable ── */
+.topbar{padding-top:calc(9px + env(safe-area-inset-top));height:calc(82px + env(safe-area-inset-top));}
+@media(max-width:390px){.topbar{height:calc(76px + env(safe-area-inset-top));}}
+.quick-drawer-panel{padding-top:calc(18px + env(safe-area-inset-top));}
