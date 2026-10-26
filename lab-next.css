@@ -1,0 +1,120 @@
+/* Financial Lab 4.2.0.0 — next-phase modules */
+.flx-seg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.flx-seg button{min-height:46px;border:1px solid var(--line);border-radius:10px;background:#0a100d;color:#fff;font-weight:800;letter-spacing:.03em}
+.flx-seg button.active{border-color:var(--green);color:var(--green);background:rgba(110,229,30,.08)}
+.flx-multi-question{margin-top:16px;padding-top:14px;border-top:1px solid #1d2923}
+.flx-multi-question strong{font-size:15px}
+#flxSetupIncomeBox{margin-top:14px}
+.flx-income-form label{display:block;color:#dce2de;font-size:13px;margin-bottom:12px}
+.flx-income-form input,.flx-income-form select,.flx-action-card input,.flx-action-card select{width:100%;margin-top:6px;background:#050806;border:1px solid #2d3832;color:#fff;border-radius:9px;padding:12px;font-size:16px}
+.flx-income-list{display:grid;gap:10px;margin-top:12px}
+.flx-cycle-income{display:grid;grid-template-columns:1fr 110px auto;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid #1d2923}
+.flx-cycle-income:last-child{border-bottom:0}
+.flx-cycle-income div{display:flex;flex-direction:column;gap:3px}
+.flx-cycle-income small{color:var(--muted)}
+.flx-cycle-income input{width:100%;background:#050806;border:1px solid #2d3832;color:#fff;border-radius:9px;padding:10px;font-size:16px}
+.flx-cycle-income .primary{width:auto;padding:11px 12px;font-size:12px}
+.flx-cycle-income.received{grid-template-columns:1fr auto auto}
+.flx-cycle-income.received b{color:var(--green)}
+.flx-cycle-income .secondary{padding:9px 11px;font-size:12px}
+/* Dexx chat additions */
+.flx-chat-hint{color:var(--muted);font-size:12px;line-height:1.45;margin:10px 2px 0}
+.chat form .flx-photo-btn{width:44px;min-width:44px;display:grid;place-items:center;color:var(--green);font-size:22px;cursor:pointer;border-radius:50%}
+.flx-action-card{border-color:var(--green)!important;background:#08120c!important}
+.flx-card-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+.flx-card-head>span{color:var(--green);font-size:11px;font-weight:800;letter-spacing:.07em}
+.flx-card-head .flx-type{margin:0;max-width:58%}
+.flx-card-head .flx-type select{margin-top:0;padding:8px 10px;font-size:14px}
+.flx-card-fields label{display:block;font-size:12px;color:#dce2de;margin-bottom:9px}
+.flx-note{color:var(--orange);font-size:12px;margin:2px 0 8px}
+.flx-card-actions{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:6px}
+.flx-card-error{color:var(--red);font-size:13px;margin:8px 0 0;min-height:0}
+.bubble.flx-saved{border-color:var(--green);color:var(--green)}
+/* Notifications */
+.flx-toggles{display:grid;gap:10px;margin:6px 0 14px}
+.flx-toggles label{display:flex;gap:10px;align-items:center;color:#dce2de;font-size:14px}
+.flx-toggles input{width:20px;height:20px;accent-color:var(--green)}
+.flx-sheet{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center}
+.flx-sheet[hidden]{display:none}
+.flx-sheet-panel{width:min(520px,100%);background:#0a100d;border:1px solid var(--line);border-radius:18px 18px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));max-height:75vh;overflow:auto}
+.flx-sheet-panel .section-head button{font-size:18px;color:#fff}
+.flx-alert-row{display:flex;flex-direction:column;gap:5px;width:100%;text-align:left;background:#07100c;border:1px solid #213329;border-radius:12px;padding:13px;margin-bottom:9px;color:#fff}
+.flx-alert-row small{color:var(--muted);line-height:1.45}
+.flx-sheet-settings{width:100%;margin-top:6px}
+/* Business Lab — blue mode */
+body.business-mode{--green:#3ea2ff;--green2:#1f6fd1;background:radial-gradient(circle at 50% -10%,#10223a 0,#04070d 34%)}
+body.business-mode .app-shell{background:linear-gradient(180deg,rgba(4,7,13,.96),#03050a)}
+body.business-mode .topbar{border-bottom-color:rgba(62,162,255,.18)}
+body.business-mode .topbar:after{content:"BUSINESS LAB";position:absolute;left:50%;bottom:4px;transform:translateX(-50%);font-size:9px;letter-spacing:.14em;color:var(--green);font-weight:800}
+body.business-mode .journey-bar{display:none}
+.flx-stat-note{position:absolute;right:12px;bottom:12px;font-style:normal;font-size:11px;color:var(--orange)}
+.flx-invoice.late{border-color:rgba(255,61,53,.5)}
+.flx-invoice.paid b{color:var(--muted)}
+.flx-quarter-card .big-money{margin:8px 0}
+.flx-inline-amt{width:100px;background:#050806;border:1px solid #2d3832;color:#fff;border-radius:8px;padding:7px 9px;font-size:16px}
+.flx-card-actions .flx-inline-amt{width:100%}
+button:disabled.primary,button:disabled.secondary{opacity:.4;filter:grayscale(.6);cursor:not-allowed}
+.flx-income-cycle .section-head button{min-height:44px;min-width:44px;padding:0 10px}
+body.business-mode .dexx-fab{border-color:var(--green);box-shadow:0 0 18px rgba(62,162,255,.55)}
+
+/* 4.3.0.0 — Business Lab Pro + cloud */
+.flp-repeat{display:flex!important;align-items:center;gap:8px;margin-top:22px}
+.flp-repeat input{width:20px!important;height:20px;margin:0!important;accent-color:var(--green)}
+.flp-follow{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:12px;border:1px solid #2a3a46;border-left:3px solid var(--orange);border-radius:12px;margin-bottom:9px}
+.flp-follow.firm{border-left-color:#ff8a3d}.flp-follow.severe{border-left-color:var(--red)}
+.flp-follow div{display:flex;flex-direction:column;gap:3px}.flp-follow small{color:var(--muted)}
+.flp-follow .primary{width:auto;padding:11px 12px;font-size:12px}
+.flp-month-nav{display:flex;align-items:center;gap:6px}
+.flp-month-nav button{min-width:44px;min-height:44px;border:1px solid var(--line);border-radius:10px;background:transparent;color:#fff;font-size:20px}
+.flp-pl-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #18232c;font-size:14px}
+.flp-pl-row.sub{color:var(--muted);font-size:13px;padding-left:10px}
+.flp-pl-row.total b{color:var(--green);font-size:16px}.flp-pl-row.neg b{color:var(--red)}
+.flp-dexx-says{display:grid;grid-template-columns:52px 1fr;gap:12px;margin:14px 0;padding:12px;border:1px solid rgba(62,162,255,.3);border-radius:14px;background:rgba(62,162,255,.06)}
+.flp-dexx-says img{width:52px;height:52px;border-radius:50%;object-fit:cover}
+.flp-dexx-says p{margin:0;font-size:14px;line-height:1.55;color:#dce6ee}
+.flp-export{width:100%}
+.flp-mileage-head{display:flex;justify-content:space-between;align-items:flex-end;margin:4px 0 14px}
+.flp-mileage-head div{display:flex;flex-direction:column}.flp-mileage-head small{color:var(--muted);font-size:11px}
+.flp-mileage-head strong{font-size:26px;color:var(--green)}
+.flp-more{margin:0 0 12px;color:var(--muted);font-size:13px}.flp-more summary{cursor:pointer;padding:6px 0;min-height:32px}
+.flp-rate-form{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin-top:14px;padding-top:12px;border-top:1px solid #18232c}
+.flp-rate-form label{font-size:12px;color:var(--muted)}.flp-rate-form input{width:100%;margin-top:6px;background:#050806;border:1px solid #2d3832;color:#fff;border-radius:9px;padding:10px;font-size:16px}
+.flp-rate-form .status{grid-column:1/-1;margin:0}
+.flp-1099{color:var(--orange)!important;font-weight:700}
+#flpReminderText{width:100%;background:#050806;border:1px solid #2d3832;color:#fff;border-radius:10px;padding:12px;font-size:15px;line-height:1.5;resize:vertical;font-family:inherit}
+.flp-sheet-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px}
+.flp-sheet-actions button{padding:12px 6px;font-size:12px}
+#flpConflictSheet .flp-sheet-actions{grid-template-columns:1fr 1fr}
+.flp-cloud-email{display:flex;flex-direction:column;gap:3px;margin:4px 0 8px}.flp-cloud-email small{color:var(--muted)}
+
+.flp-follow .primary{min-height:44px}
+#business form>button.primary,#business .flp-repeat{margin-right:64px}
+#business form>button.primary{width:calc(100% - 64px)}
+
+/* 4.4.0.0 — invoice builder, forecast, restore, receipts */
+.fli-head,.fli-item{display:grid;grid-template-columns:1fr 58px 86px 36px;gap:6px;align-items:center}
+.fli-head{font-size:11px;color:var(--muted);letter-spacing:.06em;margin:6px 0}
+.fli-item{margin-bottom:8px}
+.fli-item input,.fli-label input,.fli-label textarea,#bizSettingsForm textarea{width:100%;background:#050806;border:1px solid #2d3832;color:#fff;border-radius:9px;padding:10px;font-size:16px;font-family:inherit}
+.fli-item button{min-width:36px;min-height:44px;background:transparent;border:0;color:var(--muted);font-size:16px}
+.fli-add{width:100%;margin:4px 0 8px}
+.fli-label{display:block;font-size:12px;color:#dce2de;margin-top:10px}
+.flc-chart svg{width:100%;height:150px;display:block}
+.flc-chart rect{fill:var(--green);opacity:.85}.flc-chart rect.neg{fill:var(--red)}.flc-chart rect.low{stroke:#fff;stroke-width:1.5}
+.flc-chart .axis{stroke:#2a3a46;stroke-width:1}.flc-chart text{fill:#7d8a96;font-size:9px}
+#bizForecastEnd.neg{color:var(--red)}
+.flr-file input{padding:9px!important;font-size:14px!important}
+.flr-has{color:var(--green)!important}
+.flr-image{width:100%;max-height:52vh;object-fit:contain;border-radius:12px;background:#000;margin:6px 0}
+.flr-pick{display:flex;align-items:center;justify-content:center;border-radius:10px;cursor:pointer;font-weight:800;font-size:12px;min-height:44px}
+.flrs-restore{border-style:dashed!important}
+.flrs-sheet{z-index:100000}
+
+.flx-sheet [hidden]{display:none!important}
+
+/* 4.4.0.0 polish */
+#bizExpenseList [data-receipt],#bizInvoiceList [data-inv-build]{min-height:44px;padding:0 10px}
+#bizForecastEvents .flp-pl-row{padding-right:64px}
+#restoreCodeForm,#cloudCodeForm{margin-top:14px}
+.flx-front-biz{border-color:rgba(62,162,255,.55)!important;background:linear-gradient(180deg,rgba(62,162,255,.12),rgba(5,8,12,.6))!important}
+.flx-front-biz strong{color:#3ea2ff!important}

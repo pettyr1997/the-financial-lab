@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/><meta content="#050807" name="theme-color"/><meta content="Financial Lab powered by Dexx" name="description"/><link href="manifest.webmanifest" rel="manifest"/><link href="icon.svg" rel="icon"/><link href="icon-192.png" rel="apple-touch-icon"/><link href="styles.css?v=4.1.22.1" rel="stylesheet"/><meta name="apple-mobile-web-app-capable" content="yes"/><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/><meta name="apple-mobile-web-app-title" content="Financial Lab"/><title>Financial Lab — Powered by Dexx</title><meta content="4.1.22.1" name="financial-lab-version"/><meta name="financial-lab-release" content="4.1.22.1-payday-truth-cash-flow-learning"/></head>
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/><meta content="#050807" name="theme-color"/><meta content="Financial Lab powered by Dexx" name="description"/><link href="manifest.webmanifest" rel="manifest"/><link href="icon.svg" rel="icon"/><link href="icon-192.png" rel="apple-touch-icon"/><link href="styles.css?v=4.4.0.0" rel="stylesheet"/><link href="lab-next.css?v=4.4.0.0" rel="stylesheet"/><meta name="apple-mobile-web-app-capable" content="yes"/><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/><meta name="apple-mobile-web-app-title" content="Financial Lab"/><title>Financial Lab — Powered by Dexx</title><meta content="4.4.0.0" name="financial-lab-version"/><meta name="financial-lab-release" content="4.4.0.0-invoices-forecast-restore-receipts"/></head>
 <body class="front-door-active">
 <div class="front-door" id="frontDoor">
   <div class="front-door-glow"></div>
@@ -25,9 +25,17 @@
             <strong>JOIN THE LAB</strong>
             <small>New here · start your setup</small>
           </button>
+          <button class="front-secondary flrs-restore" id="restoreLabBtn" type="button" data-testid="restore-lab-button">
+            <strong>RESTORE MY LAB</strong>
+            <small>New phone? · load your Lab from your cloud account</small>
+          </button>
+          <button class="front-secondary flx-front-biz" id="businessLabFrontBtn" type="button" data-testid="front-business-lab-button">
+            <strong>BUSINESS LAB</strong>
+            <small>LLC or freelance? · invoices, taxes &amp; cash forecast</small>
+          </button>
         </div>
 
-        <p class="front-auth-note">Local preview: your Financial Lab data stays on this device. Secure cloud accounts and cross-device login will come with the future backend.</p>
+        <p class="front-auth-note">Your Financial Lab data stays on this device. Sign in to a cloud account (More → Cloud Account) to back it up and use it on every device.</p>
       </div>
 
       <div class="front-dexx">
@@ -48,7 +56,7 @@
   </section>
 </div>
 <div class="app-shell" id="appShell">
-<header class="topbar"><button aria-label="Open menu" class="icon-button" id="menuBtn">☰</button><img alt="Financial Lab powered by Dexx" class="brand-logo" onerror="this.onerror=null;this.src='logo-full.svg'" src="financial-lab-logo.jpg"/><button aria-label="Notifications" class="icon-button">♧<i class="notify-dot"></i></button></header>
+<header class="topbar"><button aria-label="Open menu" class="icon-button" id="menuBtn">☰</button><img alt="Financial Lab powered by Dexx" class="brand-logo" onerror="this.onerror=null;this.src='logo-full.svg'" src="financial-lab-logo.jpg"/><button aria-label="Notifications" class="icon-button" id="notifyBtn" type="button">🔔<i class="notify-dot"></i></button></header>
 <main>
 <section class="view active" id="laboratory">
 
@@ -276,6 +284,7 @@
 <div class="step-track"><i class="active">1</i><span></span><i>2</i><span></span><i>3</i><span></span><i>4</i><span></span><i>5</i></div>
 <p id="workflowCopy">Enter your check, confirm your bills, then let Dexx build the plan.</p>
 </section>
+<section class="card flx-income-cycle" id="incomeCycleCard"></section>
 <section class="card paycheck-planner">
 <div class="section-head"><span>PAYDAY PLAN</span><b id="planStatus">Ready</b></div>
 <p class="planner-copy">Bills come first. Dexx then protects upcoming obligations, savings, debt progress, and your safe-to-spend amount.</p>
@@ -315,6 +324,7 @@
 <section class="card"><div class="section-head"><span>PAYCHECK PLAN HISTORY</span><button class="danger-link" id="clearActivePlan" type="button">Clear active check</button></div><p class="manager-copy compact-copy">Delete one approved paycheck without wiping the rest of your Financial Lab history.</p><div class="history-list" id="planHistory"></div></section>
 </section>
 <section class="view" id="profile"><div class="page-title"><p>FINANCIAL PROFILE</p><h1>Your financial DNA.</h1></div>
+<section class="card bills-manager-card" id="flxProfileIncomes"><div class="section-head"><span>ADDITIONAL INCOMES</span><b>Pooled into your journey</b></div><p class="manager-copy">Your primary paycheck drives the Money Journey. Add any other income here, like bills — each one gets a name, amount, and schedule.</p><div id="flxProfileIncomeForm"></div></section>
 <form class="card form-card" id="profileForm"><div class="section-head"><span>PROFILE SETUP</span><b id="profileCompletion">0% complete</b></div>
 <div class="form-grid"><label>Greeting name<input id="profileName" maxlength="30" value="Rob"/></label><label>Pay frequency<select id="payFrequency"><option value="weekly">Weekly</option><option value="biweekly">Every 2 weeks</option><option value="monthly">Monthly</option></select></label></div>
 <div class="form-grid"><label>Typical payday<select id="paydayDay"><option value="5">Friday</option><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="6">Saturday</option><option value="0">Sunday</option></select></label><label>Paycheck pattern<select id="incomePattern"><option value="variable">Varies</option><option value="steady">Usually the same</option></select></label></div>
@@ -544,6 +554,40 @@
 </section>
 
 <section class="view" id="more">
+  <section class="card flp-cloud-card" id="cloudCard">
+    <div class="section-head"><span>CLOUD ACCOUNT</span><b id="cloudBadge" data-testid="cloud-badge">Not signed in</b></div>
+    <div id="cloudSignedOut">
+      <p class="manager-copy">Sign in with your email and your Lab follows you to every device. Plus alerts that arrive even when the app is closed. No password, just a code.</p>
+      <form id="cloudEmailForm" class="bill-manager-form"><label>Email<input id="cloudEmailInput" type="email" autocomplete="email" placeholder="you@email.com" data-testid="cloud-email"/></label><button class="primary" type="submit" data-testid="cloud-send-code">EMAIL ME A CODE</button></form>
+      <form id="cloudCodeForm" class="bill-manager-form" hidden><label>6-digit code<input id="cloudCodeInput" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="123456" data-testid="cloud-code"/></label><button class="primary" type="submit" data-testid="cloud-verify">SIGN IN</button></form>
+    </div>
+    <div id="cloudSignedIn" hidden>
+      <p class="flp-cloud-email"><strong id="cloudEmail"></strong><small id="cloudLast"></small></p>
+      <p class="manager-copy" id="cloudPush"></p>
+      <div class="flx-card-actions"><button type="button" class="primary" id="cloudSyncNow" data-testid="cloud-sync-now">SYNC NOW</button><button type="button" class="secondary" id="cloudSignOut" data-testid="cloud-sign-out">SIGN OUT</button></div>
+    </div>
+    <p class="status" id="cloudStatus" data-testid="cloud-status"></p>
+  </section>
+
+  <section class="card flx-mode-card">
+    <div class="section-head"><span>LAB MODE</span><b>Personal · Business</b></div>
+    <p class="manager-copy">Own an LLC or freelance? Business Lab keeps invoice income, business expenses, and tax set-asides separate from your personal money.</p>
+    <div class="flx-seg"><button type="button" data-lab-mode="personal" data-testid="mode-personal">PERSONAL LAB</button><button type="button" data-lab-mode="business" data-testid="mode-business">BUSINESS LAB</button></div>
+  </section>
+  <section class="card flx-notify-card" id="notifySettings">
+    <div class="section-head"><span>DEXX ALERTS</span><b id="notifyStatusBadge">Off</b></div>
+    <p class="manager-copy" id="notifyHelp">One alert a day at most. The lock screen never shows dollar amounts.</p>
+    <div class="flx-toggles">
+      <label><input type="checkbox" id="notify-bills"/> Bill alerts · due tomorrow, today, past due</label>
+      <label><input type="checkbox" id="notify-payday"/> Payday check-ins</label>
+      <label><input type="checkbox" id="notify-missed"/> Missed check-in nudges</label>
+      <label><input type="checkbox" id="notify-tax"/> Quarterly tax reminders (Business Lab)</label>
+    </div>
+    <div class="flx-card-actions"><button type="button" class="primary" id="notifyEnableBtn" data-testid="notify-enable">TURN ON ALERTS</button><button type="button" class="secondary" id="notifyTestBtn" data-testid="notify-test">SEND TEST</button></div>
+    <p class="status" id="notifyTestStatus"></p>
+    <p class="memory-help">Alerts are checked each time the Lab opens and, on phones that allow it, in the background. Guaranteed background delivery arrives with cloud accounts.</p>
+  </section>
+
   <section class="card debt-status-card">
     <div class="section-head"><span>DEBT STATUS</span><b id="debtStatusBadge">Not confirmed</b></div>
     <p class="manager-copy">Dexx should not assume you are debt-free just because no debt accounts have been entered.</p>
@@ -618,7 +662,7 @@
     <div class="recovery-activity-list" id="recoveryActivityList"><div class="empty-copy">Your protected changes will appear here as you use Financial Lab.</div></div>
     <p class="status memory-status" id="safetyRecoveryStatus">Safety &amp; Recovery ready.</p>
   </section>
-<div class="page-title"><p>MORE</p><h1>Quick actions.</h1></div><div class="quick-grid"><button data-action="expense">＋<span>Add Expense</span></button><button data-action="income"><b>＋</b><span>Enter Check</span></button><button data-go="budget">▦<span>Friday Lab</span></button><button data-go="reports">▥<span>Reports</span></button><button data-go="calendar">▣<span>Bill Calendar</span></button><button data-go="dexx">☵<span>Ask Dexx</span></button><button data-go="profile">◎<span>Financial Profile</span></button><button data-go="start">?<span>Start Here</span></button><button id="frontDoorBtn">⌂<span>Front Door</span></button></div></section>
+<div class="page-title"><p>MORE</p><h1>Quick actions.</h1></div><div class="quick-grid"><button data-action="expense">＋<span>Add Expense</span></button><button data-action="income"><b>＋</b><span>Enter Check</span></button><button data-go="budget">▦<span>Friday Lab</span></button><button data-go="reports">▥<span>Reports</span></button><button data-go="calendar">▣<span>Bill Calendar</span></button><button data-go="dexx">☵<span>Ask Dexx</span></button><button type="button" onclick="document.getElementById('dexxPhotoInput').click()">◉<span>Snap Paperwork</span></button><button type="button" data-lab-mode="business">▲<span>Business Lab</span></button><button data-go="profile">◎<span>Financial Profile</span></button><button data-go="start">?<span>Start Here</span></button><button id="frontDoorBtn">⌂<span>Front Door</span></button></div></section>
 
 <section class="view" id="start">
   <div class="page-title"><p>START HERE</p><h1>Build your Financial Lab.</h1></div>
@@ -656,6 +700,12 @@
       <button class="primary" type="submit">SAVE INCOME &amp; PAYDAY</button>
     </form>
     <p class="status" id="setupIncomeStatus"></p>
+    <div class="flx-multi-question">
+      <strong>Do you have more than one income?</strong>
+      <p class="manager-copy">Side jobs, a second job, benefits, rental income. The paycheck above stays your primary journey — the rest pool in when they land.</p>
+      <div class="flx-seg"><button type="button" data-multi-income="true" data-testid="setup-multi-income-yes">YES</button><button type="button" data-multi-income="false" data-testid="setup-multi-income-no">NO, JUST ONE</button></div>
+    </div>
+    <div id="flxSetupIncomeBox" hidden><div id="flxSetupIncomeForm"></div></div>
   </section>
 
   <section class="card setup-recommended-card">
@@ -686,12 +736,74 @@
   </section>
 </section>
 
-<section class="view" id="dexx"><div class="dexx-header"><button data-go="laboratory">←</button><div><h1>DEXX</h1><p>Your Financial Scientist</p></div><img alt="" aria-hidden="true" class="dexx-chat-image" onerror="this.onerror=null;this.style.display='none'" src="dexx-character-clean.jpg"/></div><div class="chat"><div class="chat-history" id="dexxHistory"><div class="bubble" id="dexxReply">Hey Rob! 👋 I'm Dexx. How can I help you today?</div></div><p class="chat-privacy">🔒 Chat is the one part of the Lab that leaves your phone — your question plus your Lab numbers go to our AI (Anthropic) to write the answer. Never used for training.</p><button data-question="score">How can I improve my score? <span>›</span></button><button data-question="spending">Analyze my spending <span>›</span></button><button data-question="challenge">Give me a money challenge <span>›</span></button><button data-question="saving">Any tips for saving more? <span>›</span></button><form id="chatForm"><input id="chatInput" placeholder="Ask Dexx anything..."/><button type="submit">➤</button></form></div></section>
+<section class="view" id="dexx"><div class="dexx-header"><button data-go="laboratory">←</button><div><h1>DEXX</h1><p>Your Financial Scientist</p></div><img alt="" aria-hidden="true" class="dexx-chat-image" onerror="this.onerror=null;this.style.display='none'" src="dexx-character-clean.jpg"/></div><div class="chat"><div class="chat-history" id="dexxHistory"><div class="bubble" id="dexxReply">Hey Rob! 👋 I'm Dexx. How can I help you today?</div></div><p class="chat-privacy">🔒 Chat is the one part of the Lab that leaves your phone — your question plus your Lab numbers go to our AI (Anthropic) to write the answer. Never used for training.</p><button data-question="score">How can I improve my score? <span>›</span></button><button data-question="spending">Analyze my spending <span>›</span></button><button data-question="challenge">Give me a money challenge <span>›</span></button><button data-question="saving">Any tips for saving more? <span>›</span></button><p class="flx-chat-hint">Tip: tell Dexx “Netflix bill $15.99 due the 20th” or “spent $42 on groceries” — or snap a pay stub, statement, receipt, or late notice.</p><form id="chatForm"><label class="flx-photo-btn" aria-label="Snap paperwork" data-testid="dexx-photo-button">◉<input id="dexxPhotoInput" type="file" accept="image/*" hidden/></label><input id="chatInput" placeholder="Ask Dexx or tell him a bill, expense…"/><button type="submit">➤</button></form></div></section>
+
+<section class="view" id="business">
+  <div class="page-title"><p>BUSINESS LAB</p><h1>Run the business side.</h1></div>
+  <section class="card flx-mode-card"><div class="flx-seg"><button type="button" data-lab-mode="personal">PERSONAL LAB</button><button type="button" data-lab-mode="business">BUSINESS LAB</button></div></section>
+  <div id="businessBody">
+  <div class="stats-grid">
+    <div class="stat"><span>BUSINESS CASH</span><strong id="bizCash" data-testid="biz-cash">$0.00</strong></div>
+    <div class="stat"><span>TAX SET ASIDE</span><strong id="bizTaxReserve" data-testid="biz-tax-reserve">$0.00</strong></div>
+    <div class="stat orange"><span>OPEN INVOICES</span><strong id="bizOpen">$0.00</strong><em id="bizOpenNote" class="flx-stat-note"></em></div>
+    <div class="stat"><span>OWNER PAY</span><strong id="bizDraws">$0.00</strong></div>
+  </div>
+  <section class="card flc-card" id="bizForecastCard"><div class="section-head"><span>60-DAY CASH FORECAST</span><b id="bizForecastEnd" data-testid="forecast-end">$0.00</b></div><div id="bizForecastChart" class="flc-chart" data-testid="forecast-chart"></div><div class="flp-dexx-says"><img src="dexx-character-business.jpg" alt="" aria-hidden="true"/><p id="bizForecastExplain" data-testid="forecast-explain"></p></div><div id="bizForecastEvents"></div></section>
+  <section class="card flx-quarter-card"><div class="section-head"><span>QUARTERLY TAXES</span><b id="bizQuarterLabel"></b></div><div class="big-money" id="bizQuarterAmount" data-testid="biz-quarter-amount">$0.00</div><p class="manager-copy" id="bizQuarterNote"></p><div class="flx-card-actions"><input class="flx-inline-amt" id="bizQuarterPaidAmount" type="number" inputmode="decimal" min="0" step="0.01" aria-label="Amount paid for this quarter"/><button type="button" class="secondary" id="bizQuarterPaid" data-testid="biz-quarter-paid">MARK QUARTER PAID</button></div></section>
+  <section class="card bills-manager-card"><div class="section-head"><span>INVOICES</span><b>Irregular income</b></div>
+    <form id="bizInvoiceForm" class="bill-manager-form"><div class="form-grid"><label>Client<input id="bizInvClient" maxlength="40" placeholder="Client name" data-testid="biz-invoice-client"/></label><label>Amount<input id="bizInvAmount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="$0.00" data-testid="biz-invoice-amount"/></label></div><div class="form-grid"><label>Due date<input id="bizInvDue" type="date" data-testid="biz-invoice-due"/></label><label>Note<input id="bizInvNote" maxlength="60" placeholder="Optional"/></label></div><div class="form-grid"><label>Client email<input id="bizInvEmail" type="email" maxlength="80" placeholder="Optional, for reminders"/></label><label class="toggle-label flp-repeat"><input id="bizInvRepeat" type="checkbox" data-testid="biz-invoice-repeat"/> Repeat monthly</label></div><button class="primary" type="submit" data-testid="biz-invoice-save">ADD INVOICE</button><p class="status" id="bizInvStatus"></p></form>
+    <div class="managed-bills" id="bizInvoiceList"></div></section>
+
+  
+  <section class="card bills-manager-card" id="bizFollowCard"><div class="section-head"><span>INVOICE FOLLOW-UPS</span><b id="bizFollowCount">All clear</b></div><div id="bizFollowUps"></div></section>
+  <section class="card bills-manager-card flp-report-card"><div class="section-head"><span>PROFIT &amp; LOSS</span><div class="flp-month-nav"><button type="button" id="bizReportPrev" aria-label="Previous month" data-testid="report-prev">‹</button><b id="bizReportMonth" data-testid="report-month"></b><button type="button" id="bizReportNext" aria-label="Next month" data-testid="report-next">›</button></div></div>
+    <div id="bizReportBody" data-testid="report-body"></div>
+    <div class="flp-dexx-says"><img src="dexx-character-business.jpg" alt="" aria-hidden="true"/><p id="bizReportExplain" data-testid="report-explain"></p></div>
+    <button type="button" class="secondary flp-export" id="bizExportBtn" data-testid="biz-export">DOWNLOAD YEAR TAX PACKET (CSV)</button><p class="status" id="bizExportStatus"></p></section>
+  <section class="card bills-manager-card"><div class="section-head"><span>MILEAGE LOG</span><b id="bizMilesYTD">0 mi</b></div>
+    <div class="flp-mileage-head"><div><small>DEDUCTION THIS YEAR</small><strong id="bizMileageDeduction" data-testid="biz-mileage-deduction">$0.00</strong></div><small id="bizMileageRate"></small></div>
+    <form id="bizMileageForm" class="bill-manager-form"><div class="form-grid"><label>Purpose<input id="bizTripPurpose" maxlength="50" placeholder="Client visit, supply run…" data-testid="biz-trip-purpose"/></label><label>Date<input id="bizTripDate" type="date"/></label></div>
+      <div class="form-grid"><label>Miles<input id="bizTripMiles" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0" data-testid="biz-trip-miles"/></label><label class="toggle-label flp-repeat"><input id="bizTripRound" type="checkbox"/> Round trip</label></div>
+      <details class="flp-more"><summary>Use odometer or add from / to</summary><div class="form-grid"><label>Odometer start<input id="bizOdoStart" type="number" inputmode="decimal" min="0" step="0.1"/></label><label>Odometer end<input id="bizOdoEnd" type="number" inputmode="decimal" min="0" step="0.1"/></label></div><div class="form-grid"><label>From<input id="bizTripFrom" maxlength="40"/></label><label>To<input id="bizTripTo" maxlength="40"/></label></div></details>
+      <button class="primary" type="submit" data-testid="biz-trip-save">LOG DRIVE</button><p class="status" id="bizTripStatus"></p></form>
+    <div class="managed-bills" id="bizMileageList"></div>
+    <form id="bizMileageRateForm" class="flp-rate-form"><label>Custom rate (¢/mile, blank = IRS)<input id="bizMileageRateInput" type="number" min="0" max="200" step="0.5"/></label><button type="submit" class="secondary">SET</button><p class="status" id="bizMileageRateStatus"></p></form></section>
+  <section class="card bills-manager-card"><div class="section-head"><span>CONTRACTORS &amp; 1099s</span><b>$2,000 threshold</b></div>
+    <form id="bizContractorForm" class="bill-manager-form"><div class="form-grid"><label>Contractor<select id="bizContrPick" data-testid="biz-contractor-pick"><option value="">+ New contractor</option></select></label><label id="bizContrNameWrap">New name<input id="bizContrName" maxlength="40" placeholder="Name" data-testid="biz-contractor-name"/></label></div>
+      <div class="form-grid"><label>Amount paid<input id="bizContrAmount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="$0.00" data-testid="biz-contractor-amount"/></label><label>Date<input id="bizContrDate" type="date"/></label></div><label>Note<input id="bizContrNote" maxlength="60" placeholder="Optional"/></label>
+      <button class="primary" type="submit" data-testid="biz-contractor-save">SAVE PAYMENT</button><p class="status" id="bizContrStatus"></p></form>
+    <div class="managed-bills" id="bizContractorList"></div></section>
+  <section class="card bills-manager-card"><div class="section-head"><span>BUSINESS EXPENSES</span><b id="bizExpenseYTD"></b></div>
+    <form id="bizExpenseForm" class="bill-manager-form"><div class="form-grid"><label>What<input id="bizExpName" maxlength="40" placeholder="Supplies, software…" data-testid="biz-expense-name"/></label><label>Amount<input id="bizExpAmount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="$0.00" data-testid="biz-expense-amount"/></label></div><div class="form-grid"><label class="flr-file">Receipt photo<input id="bizExpReceipt" type="file" accept="image/*" data-testid="biz-expense-receipt"/></label><label>Category<select id="bizExpCategory"><option value="supplies">Supplies</option><option value="software">Software</option><option value="equipment">Equipment</option><option value="travel">Travel</option><option value="meals">Meals</option><option value="marketing">Marketing</option><option value="contractors">Contractors</option><option value="fees">Fees</option><option value="other">Other</option></select></label><label>Date<input id="bizExpDate" type="date" data-testid="biz-expense-date"/></label></div><button class="primary" type="submit" data-testid="biz-expense-save">ADD BUSINESS EXPENSE</button><p class="status" id="bizExpStatus"></p></form>
+    <div class="managed-bills" id="bizExpenseList"></div></section>
+  <section class="card bills-manager-card"><div class="section-head"><span>PAY YOURSELF</span><b>Business → personal</b></div>
+    <p class="manager-copy">Keep the money separate: record what you move from the business to yourself. Pool it in and it joins your personal payday journey.</p>
+    <form id="bizDrawForm" class="bill-manager-form"><div class="form-grid"><label>Amount<input id="bizDrawAmount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="$0.00" data-testid="biz-draw-amount"/></label><label>Date<input id="bizDrawDate" type="date"/></label></div><label class="toggle-label"><input id="bizDrawPool" type="checkbox" checked/> Pool into my personal payday</label><button class="primary" type="submit" data-testid="biz-draw-save">RECORD OWNER PAY</button><p class="status" id="bizDrawStatus"></p></form>
+    <div id="bizDrawList"></div></section>
+  <section class="card bills-manager-card"><div class="section-head"><span>BUSINESS SETTINGS</span></div>
+    <form id="bizSettingsForm" class="bill-manager-form"><div class="form-grid"><label>Business name<input id="bizName" maxlength="40" placeholder="Your LLC"/></label><label>Tax set-aside %<input id="bizTaxRate" type="number" min="0" max="60" step="1" data-testid="biz-tax-rate"/></label></div><label>Business address<textarea id="bizAddress" rows="2" maxlength="160" placeholder="Street, city, state"></textarea></label><div class="form-grid"><label>Business email<input id="bizEmail" type="email" maxlength="80"/></label><label>Phone<input id="bizPhone" type="tel" maxlength="30"/></label></div><label>How clients pay you<textarea id="bizPayInfo" rows="2" maxlength="240" placeholder="Zelle: you@email.com · Cash App: $you · Checks payable to…" data-testid="biz-pay-info"></textarea></label><button class="primary" type="submit">SAVE SETTINGS</button><p class="status" id="bizSettingsStatus"></p></form>
+    <p class="memory-help">25–30% is a common starting point for self-employment plus income tax. Dexx is not a tax advisor — confirm your rate with a tax professional.</p></section>
+  </div>
+</section>
 </main>
+<div class="flx-sheet" id="fliSheet" hidden><div class="flx-sheet-panel" role="dialog" aria-label="Invoice builder"><div class="section-head"><span>INVOICE BUILDER</span><button type="button" data-fli-close aria-label="Close">✕</button></div><p class="manager-copy" id="fliTitle"></p>
+<p class="flx-note" id="fliMissing" hidden>Tip: add your business name and how clients pay you in Business Settings so they show on the invoice.</p>
+<div class="fli-head"><span>Description</span><span>Qty</span><span>Rate</span><span></span></div><div id="fliItems"></div><button type="button" class="secondary fli-add" id="fliAddItem" data-testid="invoice-add-line">+ ADD LINE</button>
+<div class="flp-pl-row total"><span>Total</span><b id="fliTotal" data-testid="invoice-total">$0.00</b></div>
+<label class="fli-label">Client email<input id="fliClientEmail" type="email" maxlength="80"/></label><label class="fli-label">Note to client<textarea id="fliClientNote" rows="2" maxlength="240" placeholder="Thanks for your business!"></textarea></label>
+<div class="flp-sheet-actions"><button type="button" class="secondary" id="fliSave" data-testid="invoice-save">SAVE</button><button type="button" class="secondary" id="fliPreview" data-testid="invoice-preview">PREVIEW</button><button type="button" class="primary" id="fliShare" data-testid="invoice-share">SEND LINK</button></div><p class="status" id="fliStatus"></p></div></div>
+<div class="flx-sheet" id="flrSheet" hidden><div class="flx-sheet-panel" role="dialog" aria-label="Receipt"><div class="section-head"><span>RECEIPT</span><button type="button" data-flr-close aria-label="Close">✕</button></div><p class="manager-copy" id="flrTitle"></p><img id="flrImage" class="flr-image" alt="Receipt photo" hidden data-testid="receipt-image"/><p class="empty-copy" id="flrEmpty" hidden></p><p class="memory-help" id="flrCloud"></p>
+<div class="flp-sheet-actions"><label class="primary flr-pick" data-testid="receipt-pick">SNAP / CHOOSE<input id="flrPicker" type="file" accept="image/*" hidden/></label><button type="button" class="secondary" id="flrDownload">DOWNLOAD</button><button type="button" class="secondary" id="flrRemove" data-testid="receipt-remove">REMOVE</button></div></div></div>
+<div class="flx-sheet flrs-sheet" id="restoreSheet" hidden><div class="flx-sheet-panel" role="dialog" aria-label="Restore my Lab"><div class="section-head"><span>RESTORE MY LAB</span><button type="button" data-restore-close aria-label="Close">✕</button></div><p class="manager-copy">Enter the email you backed up with. We'll send a 6-digit code, then your bills, plans, incomes and Business Lab load right onto this phone.</p>
+<form id="restoreEmailForm" class="bill-manager-form"><label>Email<input id="restoreEmail" type="email" autocomplete="email" placeholder="you@email.com" data-testid="restore-email"/></label><button class="primary" type="submit" data-testid="restore-send-code">EMAIL ME A CODE</button></form>
+<form id="restoreCodeForm" class="bill-manager-form" hidden><label>6-digit code<input id="restoreCode" inputmode="numeric" autocomplete="one-time-code" maxlength="8" data-testid="restore-code"/></label><button class="primary" type="submit" data-testid="restore-verify">RESTORE</button></form><p class="status" id="restoreStatus" data-testid="restore-status"></p></div></div>
+<div class="flx-sheet" id="flpReminderSheet" hidden><div class="flx-sheet-panel" role="dialog" aria-label="Payment reminder"><div class="section-head"><span>DEXX WROTE THIS REMINDER</span><button type="button" data-flp-close aria-label="Close">✕</button></div><p class="manager-copy" id="flpReminderTo"></p><textarea id="flpReminderText" rows="11" data-testid="reminder-text"></textarea><div class="flp-sheet-actions"><button type="button" class="primary" id="flpReminderCopy" data-testid="reminder-copy">COPY</button><button type="button" class="secondary" id="flpReminderShare" data-testid="reminder-share">SEND / SHARE</button><button type="button" class="secondary" id="flpReminderSent" data-testid="reminder-mark-sent">MARK SENT</button></div><p class="status" id="flpReminderStatus"></p></div></div>
+<div class="flx-sheet" id="flpConflictSheet" hidden><div class="flx-sheet-panel" role="dialog" aria-label="Choose which data to keep"><div class="section-head"><span>TWO VERSIONS FOUND</span></div><p class="manager-copy">Your Lab changed on this device and in the cloud. Which one should Dexx keep? The other is replaced everywhere.</p><p class="memory-help" id="flpConflictInfo"></p><div class="flp-sheet-actions"><button type="button" class="primary" id="flpUseCloud" data-testid="conflict-use-cloud">USE CLOUD COPY</button><button type="button" class="secondary" id="flpUseDevice" data-testid="conflict-use-device">KEEP THIS DEVICE</button></div></div></div>
+<div class="flx-sheet" id="flxAlertSheet" hidden><div class="flx-sheet-panel" role="dialog" aria-label="Dexx alerts"><div class="section-head"><span>TODAY'S ALERTS</span><button type="button" data-flx-close aria-label="Close">✕</button></div><div id="flxAlertList"></div><button type="button" class="secondary flx-sheet-settings" data-go="more" data-flx-close>ALERT SETTINGS</button></div></div>
 <div class="journey-bar" id="journeyBar"><div class="jb-text"><span id="journeyBarStep">YOUR MONEY JOURNEY</span><strong id="journeyBarTitle">Checking next step</strong></div><button id="journeyBarAction" type="button">OPEN</button></div>
 <button class="dexx-fab" id="dexxFab" type="button" data-go="dexx" aria-label="Ask Dexx"><img src="dexx-character-clean.jpg" alt=""></button>
 <nav class="bottom-nav"><button class="active" data-go="laboratory"><b>⚗</b><span>Today</span></button><button data-go="budget"><b>▣</b><span>Payday</span></button><button data-go="credit"><b>◇</b><span>Debt</span></button><button data-go="savings"><b>▤</b><span>Savings</span></button><button data-go="more"><b>•••</b><span>More</span></button></nav>
-</div><script src="app.js?v=4.1.22.1"></script>
+</div><script src="app.js?v=4.4.0.0"></script><script src="lab-next.js?v=4.4.0.0"></script><script src="lab-pro.js?v=4.4.0.0"></script><script src="lab-plus.js?v=4.4.0.0"></script>
 <script>
 (function(){
   function wireBuildButton(){
@@ -722,7 +834,7 @@
   // 4.1.6.1: keep reliable PWA updates while polishing Calendar amount display.
   if('serviceWorker' in navigator){
     window.addEventListener('load',function(){
-      navigator.serviceWorker.register('./service-worker.js?v=4.1.22.1',{updateViaCache:'none'}).then(function(reg){
+      navigator.serviceWorker.register('./service-worker.js?v=4.4.0.0',{updateViaCache:'none'}).then(function(reg){
         reg.update().catch(function(){});
         setInterval(function(){ reg.update().catch(function(){}); }, 60000);
       }).catch(function(err){console.warn('Service worker registration failed',err)});

@@ -1,3 +1,4 @@
+// Financial Lab 4.4.0.0 — + invoice builder, cash forecast, restore, receipts; Business Lab Pro (mileage, follow-ups, P&L, contractors) + cloud accounts
 function escapeHTML(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 const STORAGE_KEY = 'financial-lab-v3-data';
 const RECOVERY_KEY='financial-lab-recovery-v1';
@@ -1909,6 +1910,8 @@ function paycheckPlan(){
     if(dateAtNoon(data.payDate)) nextPay=shiftPayday(today,1);
     else nextPay=dateAtNoon(suggestedNextPayCycle().payDate)||shiftPayday(today,1);
   }
+  // 4.2.0.0 Multiple incomes: received secondary income pools into this journey.
+  const pooledIncome=(typeof pooledIncomeForCycle==='function')?pooledIncomeForCycle(today,nextPay):0;
   const reserveDays=clamp(data.profile?.reserveDays||14,7,31);
   const reserveEnd=new Date(nextPay.getTime()+reserveDays*86400000);
   // 4.0.6: Dexx plans across several future paychecks, not only the short reserve window.
@@ -1929,7 +1932,7 @@ function paycheckPlan(){
   const savingsGoalTarget=savingsTarget(),managedDebtTotal=totalDebtBalance(),targetDebt=debtTarget();const desiredDebt=Math.min(clamp(data.debtGoal,0,1e9),managedDebtTotal);
 
   // Priority order: immediate bills -> future-bill reserve -> savings -> extra debt -> safe spending.
-  let remaining=available;
+  let remaining=available+pooledIncome;
   const payNow=Math.min(remaining,dueNow);remaining-=payNow;
   const reserve=Math.min(remaining,reserveTarget);remaining-=reserve;
   const recommendedSavings=Math.min(remaining,desiredSavings);
@@ -1940,7 +1943,7 @@ function paycheckPlan(){
   remaining-=chosenDebt;
   const expenseCycleStart=dateAtNoon(data.payDate)||today,expenseCycleEnd=dateAtNoon(data.nextPayday)||nextPay;
   const safeBeforeExpenses=Math.max(0,remaining),currentExpenses=expensesForCycle(expenseCycleStart,expenseCycleEnd),expenseTotal=currentExpenses.reduce((s,x)=>s+Number(x.amount||0),0),safeToSpend=Math.max(0,safeBeforeExpenses-expenseTotal),overspent=Math.max(0,expenseTotal-safeBeforeExpenses);
-  const rememberedReserve=[...dueNowBills,...upcomingBills].reduce((s,b)=>s+Number(b.alreadyProtected||0),0);return {paycheck,balance,available,today,nextPay,reserveEnd,planningEnd,dueNowBills,upcomingBills,laterBills,dueNow,upcomingTotal,reserveTarget,rememberedReserve,desiredSavings,savingsGoalTarget,desiredDebt,targetDebt,managedDebtTotal,payNow,reserve,savings:chosenSavings,debtPayment:chosenDebt,expenseCycleStart,expenseCycleEnd,safeBeforeExpenses,currentExpenses,expenseTotal,overspent,safeToSpend,shortfall:Math.max(0,dueNow-payNow),reserveShortfall:Math.max(0,reserveTarget-reserve)};
+  const rememberedReserve=[...dueNowBills,...upcomingBills].reduce((s,b)=>s+Number(b.alreadyProtected||0),0);return {paycheck,balance,available:available+pooledIncome,pooledIncome,today,nextPay,reserveEnd,planningEnd,dueNowBills,upcomingBills,laterBills,dueNow,upcomingTotal,reserveTarget,rememberedReserve,desiredSavings,savingsGoalTarget,desiredDebt,targetDebt,managedDebtTotal,payNow,reserve,savings:chosenSavings,debtPayment:chosenDebt,expenseCycleStart,expenseCycleEnd,safeBeforeExpenses,currentExpenses,expenseTotal,overspent,safeToSpend,shortfall:Math.max(0,dueNow-payNow),reserveShortfall:Math.max(0,reserveTarget-reserve)};
 }
 function calc(){const p=paycheckPlan(),bills=[...p.dueNowBills,...p.upcomingBills],billTotal=bills.filter(b=>!b.paid).reduce((s,b)=>s+Number(b.amount||0),0);let score=35;if(p.paycheck>0)score+=15;if(bills.length)score+=10;if(p.savings>0)score+=15;if(p.shortfall===0&&p.paycheck>0)score+=15;if(p.reserveShortfall===0&&p.upcomingBills.length)score+=5;if(data.approvedPlan)score+=5;const missionDone=Object.values(data.missions).filter(Boolean).length;return {...p,bills,billTotal,cash:p.safeToSpend,score:Math.min(score,100),progress:Math.round(missionDone/4*100),missionDone}}
 // Save-hardening (beta fix): a throwing device-storage write (private
@@ -2993,8 +2996,32 @@ function dexxSnapshotText(c){
     `Cover now: ${money(c.payNow)}; protect for upcoming bills: ${money(c.reserve)}${c.reserveShortfall>0?` (shortfall ${money(c.reserveShortfall)})`:''}; savings this check: ${money(c.savings)}${c.savingsGoalTarget?` toward ${c.savingsGoalTarget.name}`:''}; debt payment: ${money(c.debtPayment)}${c.targetDebt?` toward ${c.targetDebt.name}`:''}.`,
     bills.length?`Bills before next payday (${bills.length}):\n${billLines.join('\n')}`:'No bills recorded before next payday.',
     `Flexible spending recorded this cycle: ${money(c.expenseTotal)}${c.overspent?' (over the safe amount)':''}.`,
-    `Health score: ${c.score}.`
-  ].join('\n');
+    `Health score: ${c.score}.`,
+    (Array.isArray(data.incomes)&&data.incomes.length)?`Other incomes (pool into the primary journey once received): ${data.incomes.map(i=>`${i.name} ${money(i.amount)} ${i.frequency}`).join('; ')}. Received this cycle: ${money(c.pooledIncome||0)}.`:'',
+    (data.business&&data.business.mode==='business'&&typeof flxBizState==='function')?(()=>{const s=flxBizState();return `Business Lab mode: business cash ${money(s.cash)}, tax set aside ${money(s.taxReserve)} at ${s.b.taxRate}%, open invoices ${money(s.openTotal)} (${s.overdue.length} overdue), next ${s.nextQ.label} estimated tax due ${s.nextQ.due}.`})():'',
+    (Array.isArray(data.bills)&&data.bills.length)?`All tracked bills: ${data.bills.slice(0,25).map(b=>`${b.name} ${money(b.amount)} ${b.frequency||'monthly'} next due ${b.dueDate||b.date||'?'}`).join('; ')}.`:'',
+    (data.business&&data.business.mode==='business')?'PERSONA: The user switched to Business Lab. You are Business Dexx: a sharp, confident business partner and CFO in a navy suit and shades, not a lab scientist. Talk like a business advisor (cash flow, invoices, margins, tax set-aside, paying yourself, keeping business and personal money separate). Keep it friendly and short. You are not a tax professional; suggest confirming tax specifics with one.':'',
+    'Reply in plain conversational text only: no markdown, no asterisks, no headings, no tables.'
+  ].filter(Boolean).join('\n');
+}
+/* 4.2.0.0 — Dexx no-markdown fix: AI replies render as plain text, so strip
+   markdown syntax (bold, headings, bullets, code, links) before showing it. */
+function dexxPlainText(s){
+  return String(s||'')
+    .replace(/```[a-z]*\n?([\s\S]*?)```/gi,'$1')
+    .replace(/`([^`]+)`/g,'$1')
+    .replace(/!?\[([^\]]+)\]\([^)]+\)/g,'$1')
+    .replace(/^\s{0,3}#{1,6}\s+/gm,'')
+    .replace(/(^|\s)#{2,6}(?=\s|$)/g,'$1')
+    .replace(/(\*\*|__)(.+?)\1/g,'$2')
+    .replace(/(^|[^*\w])\*(?!\s)([^*\n]+?)\*(?!\w)/g,'$1$2')
+    .replace(/(^|\W)_(?!\s)([^_\n]+?)_(?!\w)/g,'$1$2')
+    .replace(/^\s*[-*+]\s+/gm,'• ')
+    .replace(/^\s*>\s?/gm,'')
+    .replace(/^\s*([-*_]\s*){3,}$/gm,'')
+    .replace(/\|/g,' ')
+    .replace(/\n{3,}/g,'\n\n')
+    .trim();
 }
 function dexxAddBubble(text,who){
   const host=$('dexxHistory');if(!host)return null;
@@ -3018,10 +3045,10 @@ function dexxAsk(question,scripted){
     headers:{'content-type':'application/json','apikey':FL_DEXX.anonKey,'authorization':'Bearer '+FL_DEXX.anonKey},
     body:JSON.stringify({messages,context})})
   .then(r=>r.json().then(d=>({ok:r.ok,d})))
-  .then(({ok,d})=>{if(thinking)thinking.remove();if(!ok||!d||!d.reply)throw new Error('dexx-ai');dexxSession.push({role:'user',content:question},{role:'assistant',content:d.reply});dexxAddBubble(d.reply,'ai')})
+  .then(({ok,d})=>{if(thinking)thinking.remove();if(!ok||!d||!d.reply)throw new Error('dexx-ai');const reply=dexxPlainText(d.reply);dexxSession.push({role:'user',content:question},{role:'assistant',content:reply});dexxAddBubble(reply,'ai')})
   .catch(()=>{if(thinking)thinking.remove();dexxAddBubble(dexxScriptedAnswer(),'dexx')});
 }
-$('chatForm').addEventListener('submit',e=>{e.preventDefault();const text=$('chatInput').value.trim();if(!text)return;dexxAsk(text);$('chatInput').value=''});
+$('chatForm').addEventListener('submit',e=>{e.preventDefault();const text=$('chatInput').value.trim();if(!text)return;$('chatInput').value='';if(typeof dexxTryAction==='function'&&dexxTryAction(text))return;dexxAsk(text)});
 document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>{const type=b.dataset.action;if(type==='income'){show('budget');setTimeout(()=>$('paycheck').focus(),200);return}if(type==='expense'){show('expense');setTimeout(()=>{resetExpenseForm();$('expenseName')?.focus()},150);return}});
 
 function openFinancialLab(destination='laboratory'){
@@ -3119,7 +3146,7 @@ document.addEventListener('click',e=>{
 normalizeApprovedPlanFunding();
 const initial=location.hash.slice(1);
 const firstRun=!data.setup||!data.setup.currentMoneyConfirmed;
-if(firstRun){openFrontDoor()}else{show(['laboratory','budget','profile','credit','savings','expense','reports','calendar','more','start','dexx'].includes(initial)?initial:'laboratory')}
+if(firstRun){openFrontDoor()}else{show(['laboratory','budget','profile','credit','savings','expense','reports','calendar','more','start','dexx','business'].includes(initial)?initial:'laboratory')}
 render();initializePersistentMemory();
 
 $('calendarPrev')?.addEventListener('click',()=>{const base=calendarCursor||new Date();calendarCursor=new Date(base.getFullYear(),base.getMonth()-1,1,12);renderCalendar(calc())});
