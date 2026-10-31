@@ -93,7 +93,7 @@ function reconcileExecutionState(){
 const DEFAULTS = {
   researcherName:'', paycheck:0, currentBalance:0, payDate:'', nextPayday:'', savingsRate:10,
   billName:'', billDate:'', billAmount:0, saveAmount:0, debtAmount:0, debtGoal:0, expenses:0,
-  customSavings:null, customDebt:null, bills:[], debts:[], expenseRecords:[], savingsGoals:[], savingsStrategy:'priority', debtStrategy:'balanced', paycheckHistory:[], approvedPlan:null, skippedPaydays:[], reserveMemory:{},
+  customSavings:null, customDebt:null, bills:[], debts:[], expenseRecords:[], savingsGoals:[], savingsStrategy:'priority', debtStrategy:'balanced', paycheckHistory:[], approvedPlan:null, mainIncomes:[], skippedPaydays:[], reserveMemory:{},
   missions:{spending:false,saving:false,bills:false,friday:false}, profile:{payFrequency:'weekly',paydayDay:5,incomePattern:'variable',recurringBillCount:9,financialStrategy:'balanced',reserveDays:14}, setup:{currentMoneyConfirmed:false,incomeConfirmed:false,expectedPaycheck:0,nextPayday:'',skipped:{bills:false,debt:false,savings:false,spending:false},completedAt:''}, lastUpdated:''
 };
 const $=id=>document.getElementById(id);
@@ -1888,10 +1888,33 @@ function paydaysThrough(dueDate,today,nextPay,freqDays,includeCurrentCheck=true)
   while(cursor&&cursor<=due&&guard<60){count+=1;cursor=new Date(cursor.getTime()+freqDays*86400000);guard+=1}
   return Math.max(1,count)
 }
+/* 4.4 multi-main: count every main income's paydays in the window, not just
+   the anchor schedule. A household paid opposite weeks gets a check every
+   week; counting only the anchor schedule sizes each reserve ~2x too big
+   and understates safe-to-spend. Single-earner households are unchanged
+   (no mains => the anchor count only). Mains count their future paydays
+   strictly after today up to the due date; same-day collisions across
+   mains count separately because each is a real paycheck arriving. */
+function householdPaydayCount(dueDate,today,nextPay,freqDays,includeCurrentCheck){
+  let count=paydaysThrough(dueDate,today,nextPay,freqDays,includeCurrentCheck);
+  const due=dateAtNoon(dueDate),start=dateAtNoon(today);
+  if(!due||!start)return count;
+  (Array.isArray(data.mainIncomes)?data.mainIncomes:[]).forEach(m=>{
+    const base=dateAtNoon(m.nextDate);if(!base)return;
+    const f=m.frequency||'monthly';
+    if(f==='once'){if(base>start&&base<=due)count+=1;return}
+    const step=d=>{const x=new Date(d);if(f==='monthly')x.setMonth(x.getMonth()+1);else x.setDate(x.getDate()+(f==='biweekly'?14:7));return x};
+    let d=new Date(base);let guard=0;
+    while(d<=start&&guard++<400)d=step(d);
+    guard=0;
+    while(d<=due&&guard++<400){count+=1;d=step(d)}
+  });
+  return Math.max(1,count);
+}
 function reserveTargets(upcomingBills,today,nextPay,freqDays){
   const includeCurrentCheck=Boolean(dateAtNoon(data.payDate));
   return upcomingBills.map(b=>{
-    const checks=paydaysThrough(b.date,today,nextPay,freqDays,includeCurrentCheck);
+    const checks=householdPaydayCount(b.date,today,nextPay,freqDays,includeCurrentCheck);
     const alreadyProtected=protectedFor(b);
     const remainingToFund=Math.max(0,Number(b.amount||0)-alreadyProtected);
     const target=Math.round((remainingToFund/checks)*100)/100;
@@ -2483,6 +2506,11 @@ function renderMoneyJourney(c){
   set('moneyJourneyNextText',j.current?.note||'Dexx will keep this journey updated as your money cycle changes.');
   action.disabled=false;action.removeAttribute('data-go');action.removeAttribute('data-journey-scroll');
   if(!j.readiness.requiredReady){action.textContent='COMPLETE ESSENTIAL SETUP';action.dataset.go='start'}
+  /* 4.4 missing-check guidance: no approved plan AND no main paycheck means
+     the plan cannot build yet. Say so plainly and send the user straight to
+     the check-details form instead of the planner, where approval is blocked
+     with only "Enter your paycheck first." Read-only: no save, no state change. */
+  else if(!j.plan&&!c.paycheck){action.textContent='ENTER YOUR CHECK';action.dataset.go='budget';action.dataset.journeyScroll='check';set('moneyJourneyNextTitle','Your main check is missing');set('moneyJourneyNextText','Your bills and other incomes are saved, but Dexx cannot build a plan without your main paycheck amount. Enter it and the plan builds from what you already entered.')}
   else if(!j.plan){action.textContent='BUILD PAYDAY PLAN';action.dataset.go='budget';action.dataset.journeyScroll='plan'}
   else if(j.beforePayday){action.textContent=`PAYCHECK LANDS ${dateText(j.payDate,{month:'short',day:'numeric'}).toUpperCase()}`;action.disabled=true}
   else if(!j.funded){action.textContent=j.preview?'REVIEW RECONCILIATION':'CONFIRM ACTUAL PAYCHECK';action.dataset.go='budget';action.dataset.journeyScroll='execution'}
@@ -2652,11 +2680,29 @@ function renderDebtManager(){
 }
 
 function renderHistory(){const host=$('planHistory');if(!host)return;host.replaceChildren();const list=[...approvedHistory()].reverse().slice(0,12);if(!list.length){host.innerHTML='<div class="empty-copy">Approved plans will appear here.</div>';return}list.forEach(h=>{const row=document.createElement('article');row.className='history-row';if(h.late){row.innerHTML=`<div><strong>${money(h.actualPaycheck)} confirmed late</strong><small>${dateText(historyDisplayDate(h),{month:'short',day:'numeric',year:'numeric'})}</small></div><span>Late check-in · counts toward Dexx income learning · nothing funded retroactively</span><button class="danger-link history-delete" type="button" data-delete-plan="${h.id||''}">Delete</button>`}else{row.innerHTML=`<div><strong>${money(h.paycheck)} payday</strong><small>${dateText(historyDisplayDate(h),{month:'short',day:'numeric',year:'numeric'})}</small></div><span>Spent ${money(h.spent)} · Saved ${money(h.savings)}${h.savingsContributions?.[0]?.name?` to ${escapeHTML(h.savingsContributions[0].name)}`:''} · Safe ${money(h.safeToSpend)}</span><button class="danger-link history-delete" type="button" data-delete-plan="${h.id||''}">Delete</button>`}host.append(row)})}
+/* 4.4 multi-main: the plan lists every main income by name so a two-earner
+   household sees both checks, not one paycheck plus "other income".
+   Read-only: never marks anything received or funded. A non-anchor main
+   shows as Expected until its receipt lands inside the current window,
+   then as Received and pooled. */
+function renderPlanMainIncomes(c){
+  const host=$('planMainIncomes');if(!host)return;
+  const today=dateAtNoon(new Date()),nextPay=c.nextPay||dateAtNoon(data.nextPayday);
+  const inWindow=d=>{const x=dateAtNoon(d);return !!(x&&today&&nextPay&&x>=today&&x<nextPay)};
+  const rows=[];
+  if(Number(data.paycheck||0)>0)rows.push(`<div class="plan-main-row"><div><strong>Main paycheck (anchor)</strong><small>${dateText(data.payDate,{month:'short',day:'numeric'})}</small></div><b>${money(data.paycheck)}</b></div>`);
+  (Array.isArray(data.mainIncomes)?data.mainIncomes:[]).forEach(m=>{
+    const received=(Array.isArray(m.received)?m.received:[]).find(r=>inWindow(r.date));
+    if(received)rows.push(`<div class="plan-main-row received"><div><strong>${escapeHTML(m.name)}</strong><small>Received ${dateText(received.date,{month:'short',day:'numeric'})} · pooled into this plan</small></div><b>${money(m.amount)}</b></div>`);
+    else rows.push(`<div class="plan-main-row"><div><strong>${escapeHTML(m.name)}</strong><small>Expected ${dateText(m.nextDate,{month:'short',day:'numeric'})} · not funded yet</small></div><b>${money(m.amount)}</b></div>`);
+  });
+  host.innerHTML=rows.length?`<div class="section-head"><span>MAIN INCOMES</span></div>`+rows.join(''):'';
+}
 function render(){reconcileExecutionState();const c=calc(),hour=new Date().getHours();renderNextPaycheckLaunchpad();renderPaydayCommandCenter(c);renderPaydayCatchup();renderLabBriefing(c);renderLabReadinessIntelligence();renderMoneyJourney(c);renderJourneyBar(c);$('greeting').textContent=`GOOD ${hour<12?'MORNING':hour<17?'AFTERNOON':'EVENING'}, ${(data.researcherName||'RESEARCHER').toUpperCase()} 👋`;if($('healthScore'))$('healthScore').textContent=c.score;if($('scoreRing'))$('scoreRing').style.setProperty('--score',c.score);if($('healthMessage'))$('healthMessage').textContent=c.score>=80?'Your payday plan is fully protected.':c.score>=60?'Your plan is gaining strength.':'Complete Payday Mode to improve your score.';const activeFunded=!!data.approvedPlan&&planFundingStatus(data.approvedPlan)==='funded';$('cashAvailable').textContent=money(activeFunded?c.safeToSpend:Math.max(0,Number(data.currentBalance)||0));$('billsWeek').textContent=money(c.payNow);$('savingsTotal').textContent=money(savingsGoalDefinitions().length?totalGoalSavings():c.savings);$('debtRemaining').textContent=money(totalDebtBalance());$('missionCount').textContent=`${c.missionDone} / 4`;$('progressText').textContent=`${c.progress}%`;$('progressBar').style.width=`${c.progress}%`;$('dexxObservation').textContent=recommendation(c);const conf=confidence(c);if($('confidenceLabel'))$('confidenceLabel').textContent=conf.level;if($('confidenceText'))$('confidenceText').textContent=conf.text;if($('confidenceBar'))$('confidenceBar').style.width=`${conf.pct}%`;renderTimeline(c);renderProfile();renderGuidedSetup();renderDebtManager();renderDebtOutlook();renderSavingsManager();renderSavingsOutlook();renderExpenseManager(c);renderReports(c);renderCalendar(c);renderMemoryGuard();renderSafetyRecovery();renderHealthScore(c);renderDebtStatusControl();renderActionCenter(c);if(debtDefinitions().length&&$('debtAmount')){$('debtAmount').value=totalDebtBalance();$('debtAmount').readOnly=true;$('debtAmount').title='Managed automatically from Credit Lab';}else if($('debtAmount')){$('debtAmount').readOnly=false;}document.querySelectorAll('[data-mission]').forEach(x=>x.checked=!!data.missions[x.dataset.mission]);billRows($('billList'),c.bills.filter(b=>!b.paid).slice(0,4));billRows($('allBills'),c.dueNowBills);prepareRows($('prepareBills'),c.upcomingBills);if($('reserveMemorySummary'))$('reserveMemorySummary').innerHTML=`<strong>${money(c.rememberedReserve)}</strong><span>already protected from approved payday plans</span>`;
   ['paycheck','currentBalance','saveAmount','debtAmount','debtGoal','savingsRate'].forEach(id=>{if($(id))$(id).value=data[id]||(id==='savingsRate'?10:'')});if($('payDate'))$('payDate').value=iso(dateAtNoon(data.payDate)||new Date());if($('nextPayday'))$('nextPayday').value=iso(dateAtNoon(data.nextPayday))||'';
-  if($('planPayNow')){const d=commandCenterPlan(c);$('planPayNow').textContent=money(d.payNow);$('planReserve').textContent=money(d.reserve);$('planSavings').textContent=money(d.savings);$('planDebt').textContent=money(d.debtPayment);$('planSpend').textContent=money(d.safeToSpend);$('planStatus').textContent=d.shortfall?'Needs attention':data.approvedPlan?'Approved · executing':d.paycheck?'Plan ready':'Ready';$('dexxPlanText').textContent=recommendation(d);const total=d.paycheck||d.available||1;[['allocBills',d.payNow],['allocReserve',d.reserve],['allocSavings',d.savings],['allocDebt',d.debtPayment],['allocSpend',d.safeToSpend]].forEach(([id,val])=>$(id).style.width=`${Math.max(0,val/total*100)}%`);allocationRows(d);renderBillCoverage(d);$('customSavings').value=data.customSavings??'';$('customDebt').value=data.customDebt??'';const step=!c.paycheck?1:!c.bills.length?2:!data.approvedPlan?4:5;$('workflowStatus').textContent=`Step ${step} of 5`;$('workflowCopy').textContent=step===1?'Enter your check and payday dates.':step===2?'Add and confirm every bill coming before and after payday.':step===4?'Review Dexx’s recommendation and adjust only if needed.':'Plan approved. Track the experiment until next payday.';document.querySelectorAll('.step-track i').forEach((x,i)=>x.classList.toggle('active',i<step));const ex=experiment(c);$('experimentTitle').textContent=ex.title;$('experimentText').textContent=ex.text;$('experimentBar').style.width=`${ex.progress}%`;$('experimentProgress').textContent=`${ex.progress}% complete`;renderHistory()}}
+  if($('planPayNow')){const d=commandCenterPlan(c);$('planPayNow').textContent=money(d.payNow);$('planReserve').textContent=money(d.reserve);$('planSavings').textContent=money(d.savings);$('planDebt').textContent=money(d.debtPayment);$('planSpend').textContent=money(d.safeToSpend);$('planStatus').textContent=d.shortfall?'Needs attention':data.approvedPlan?'Approved · executing':d.paycheck?'Plan ready':'Ready';$('dexxPlanText').textContent=recommendation(d);const total=d.paycheck||d.available||1;[['allocBills',d.payNow],['allocReserve',d.reserve],['allocSavings',d.savings],['allocDebt',d.debtPayment],['allocSpend',d.safeToSpend]].forEach(([id,val])=>$(id).style.width=`${Math.max(0,val/total*100)}%`);allocationRows(d);renderBillCoverage(d);$('customSavings').value=data.customSavings??'';$('customDebt').value=data.customDebt??'';const step=!c.paycheck?1:!c.bills.length?2:!data.approvedPlan?4:5;$('workflowStatus').textContent=`Step ${step} of 5`;$('workflowCopy').textContent=step===1?'Enter your check and payday dates.':step===2?'Add and confirm every bill coming before and after payday.':step===4?'Review Dexx’s recommendation and adjust only if needed.':'Plan approved. Track the experiment until next payday.';document.querySelectorAll('.step-track i').forEach((x,i)=>x.classList.toggle('active',i<step));const ex=experiment(c);$('experimentTitle').textContent=ex.title;$('experimentText').textContent=ex.text;$('experimentBar').style.width=`${ex.progress}%`;$('experimentProgress').textContent=`${ex.progress}% complete`;renderPlanMainIncomes(c);renderHistory()}}
 function show(id){document.body.dataset.view=id;document.body.classList.remove('front-door-active');document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===id));document.querySelectorAll('.bottom-nav button').forEach(b=>b.classList.toggle('active',b.dataset.go===id));history.replaceState(null,'','#'+id);scrollTo({top:0,behavior:'smooth'})}
-document.addEventListener('click',e=>{const go=e.target.closest('[data-go]');if(document.body.classList.contains('front-door-active'))return;if(go){e.preventDefault();show(go.dataset.go);const target=go.dataset.journeyScroll;if(target)setTimeout(()=>{const el=target==='execution'?$('paydayExecutionMode'):target==='next'?document.querySelector('.next-paycheck-launchpad'):document.querySelector('.paycheck-planner');el?.scrollIntoView({behavior:'smooth',block:'start'})},120)}const q=e.target.closest('[data-question]');if(q){const c=calc(),answers={score:`Your score is ${c.score}. Cover immediate bills, protect ${money(c.savings)} in savings, and stay within ${money(c.safeToSpend)}.`,spending:`Your safe-to-spend amount is ${money(c.safeToSpend)} through ${dateText(c.nextPay,{month:'short',day:'numeric'})}.`,challenge:experiment(c).text,saving:`I recommend ${money(c.savings)} this payday${c.savingsGoalTarget?` toward ${c.savingsGoalTarget.name}`:''}. Increase it only after immediate and upcoming bills are protected.`};dexxAsk(q.firstChild.textContent.trim(),answers[q.dataset.question])}});
+document.addEventListener('click',e=>{const go=e.target.closest('[data-go]');if(document.body.classList.contains('front-door-active'))return;if(go){e.preventDefault();show(go.dataset.go);const target=go.dataset.journeyScroll;if(target)setTimeout(()=>{const el=target==='execution'?$('paydayExecutionMode'):target==='next'?document.querySelector('.next-paycheck-launchpad'):target==='check'?$('budgetForm'):document.querySelector('.paycheck-planner');el?.scrollIntoView({behavior:'smooth',block:'start'});if(target==='check')$('paycheck')?.focus()},120)}const q=e.target.closest('[data-question]');if(q){const c=calc(),answers={score:`Your score is ${c.score}. Cover immediate bills, protect ${money(c.savings)} in savings, and stay within ${money(c.safeToSpend)}.`,spending:`Your safe-to-spend amount is ${money(c.safeToSpend)} through ${dateText(c.nextPay,{month:'short',day:'numeric'})}.`,challenge:experiment(c).text,saving:`I recommend ${money(c.savings)} this payday${c.savingsGoalTarget?` toward ${c.savingsGoalTarget.name}`:''}. Increase it only after immediate and upcoming bills are protected.`};dexxAsk(q.firstChild.textContent.trim(),answers[q.dataset.question])}});
 document.addEventListener('click',e=>{
   const command=e.target.closest('[data-command]');
   if(!command)return;
@@ -2998,6 +3044,7 @@ function dexxSnapshotText(c){
     `Flexible spending recorded this cycle: ${money(c.expenseTotal)}${c.overspent?' (over the safe amount)':''}.`,
     `Health score: ${c.score}.`,
     (Array.isArray(data.incomes)&&data.incomes.length)?`Other incomes (pool into the primary journey once received): ${data.incomes.map(i=>`${i.name} ${money(i.amount)} ${i.frequency}`).join('; ')}. Received this cycle: ${money(c.pooledIncome||0)}.`:'',
+    (Array.isArray(data.mainIncomes)&&data.mainIncomes.length)?`Main incomes besides the anchor paycheck: ${data.mainIncomes.map(i=>`${i.name} ${money(i.amount)} ${i.frequency}, next ${i.nextDate}`).join('; ')}. These are first-class household incomes, not side income; their paydays count in reserves.`:'',
     (data.business&&data.business.mode==='business'&&typeof flxBizState==='function')?(()=>{const s=flxBizState();return `Business Lab mode: business cash ${money(s.cash)}, tax set aside ${money(s.taxReserve)} at ${s.b.taxRate}%, open invoices ${money(s.openTotal)} (${s.overdue.length} overdue), next ${s.nextQ.label} estimated tax due ${s.nextQ.due}.`})():'',
     (Array.isArray(data.bills)&&data.bills.length)?`All tracked bills: ${data.bills.slice(0,25).map(b=>`${b.name} ${money(b.amount)} ${b.frequency||'monthly'} next due ${b.dueDate||b.date||'?'}`).join('; ')}.`:'',
     (data.business&&data.business.mode==='business')?'PERSONA: The user switched to Business Lab. You are Business Dexx: a sharp, confident business partner and CFO in a navy suit and shades, not a lab scientist. Talk like a business advisor (cash flow, invoices, margins, tax set-aside, paying yourself, keeping business and personal money separate). Keep it friendly and short. You are not a tax professional; suggest confirming tax specifics with one.':'',

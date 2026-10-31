@@ -21,6 +21,11 @@ const flxTitle=s=>String(s||'').trim().replace(/\s+/g,' ').replace(/\b\w/g,c=>c.
 function flxEnsureData(){
   if(!Array.isArray(data.incomes))data.incomes=[];
   data.incomes.forEach(i=>{i.amount=Math.max(0,Number(i.amount)||0);if(!Array.isArray(i.received))i.received=[]});
+  /* 4.4 multi-main: non-anchor main incomes share the additional-income
+     shape (id, name, amount, frequency, nextDate, received) so pooling and
+     occurrence math work unchanged. */
+  if(!Array.isArray(data.mainIncomes))data.mainIncomes=[];
+  data.mainIncomes.forEach(i=>{i.amount=Math.max(0,Number(i.amount)||0);if(!Array.isArray(i.received))i.received=[]});
   /* Normalise IN PLACE so references held elsewhere never go stale. */
   if(!data.business||typeof data.business!=='object')data.business={};
   const b=data.business;
@@ -47,12 +52,14 @@ function flxCycleWindow(){
   if(!end||end<=start)end=flxAddDays(start,typeof payFrequencyDays==='function'?payFrequencyDays():7);
   return {start,end};
 }
-/* Called by paycheckPlan() in app.js: only RECEIVED secondary income pools in. */
+/* Called by paycheckPlan() in app.js: only RECEIVED secondary income pools in.
+   4.4 multi-main: non-anchor mains pool exactly the same way once received;
+   the entry leaves data.incomes when promoted, so nothing double-counts. */
 function pooledIncomeForCycle(start,end){
-  if(!Array.isArray(data.incomes))return 0;
   const s=dateAtNoon(start),e=dateAtNoon(end);if(!s||!e)return 0;
   let total=0;
-  data.incomes.forEach(inc=>(inc.received||[]).forEach(r=>{const d=dateAtNoon(r.date);if(d&&d>=s&&d<e)total+=Number(r.amount)||0}));
+  const add=list=>(Array.isArray(list)?list:[]).forEach(inc=>(inc.received||[]).forEach(r=>{const d=dateAtNoon(r.date);if(d&&d>=s&&d<e)total+=Number(r.amount)||0}));
+  add(data.incomes);add(data.mainIncomes);
   return Math.round(total*100)/100;
 }
 function flxIncomeFormHTML(scope){
@@ -69,7 +76,7 @@ function flxIncomeFormHTML(scope){
 function flxRenderIncomeLists(){
   document.querySelectorAll('[data-income-list]').forEach(host=>{
     const list=data.incomes||[];
-    host.innerHTML=list.length?list.map(i=>`<div class="managed-bill flx-income-row" data-testid="income-row"><div class="managed-bill-main"><div><strong>${escapeHTML(i.name)}</strong><span>${FLX_FREQ[i.frequency]||'Monthly'} · next ${dateText(i.nextDate,{month:'short',day:'numeric'})}</span></div><b>${money(i.amount)}</b></div><div class="managed-bill-meta"><span>Pools into the primary journey when received</span><div><button type="button" data-income-edit="${i.id}">Edit</button><button type="button" data-income-delete="${i.id}" class="danger-link">Delete</button></div></div></div>`).join(''):'<p class="empty-copy">No additional incomes yet. Your primary paycheck drives the journey.</p>';
+    host.innerHTML=list.length?list.map(i=>`<div class="managed-bill flx-income-row" data-testid="income-row"><div class="managed-bill-main"><div><strong>${escapeHTML(i.name)}</strong><span>${FLX_FREQ[i.frequency]||'Monthly'} · next ${dateText(i.nextDate,{month:'short',day:'numeric'})}</span></div><b>${money(i.amount)}</b></div><div class="managed-bill-meta"><span>Pools into the primary journey when received</span><div><button type="button" data-income-edit="${i.id}">Edit</button><button type="button" data-income-promote="${i.id}">Make main</button><button type="button" data-income-delete="${i.id}" class="danger-link">Delete</button></div></div></div>`).join(''):'<p class="empty-copy">No additional incomes yet. Your primary paycheck drives the journey.</p>';
   });
   const setupBox=$('flxSetupIncomeBox');
   if(setupBox){const m=data.setup?.multipleIncomes;setupBox.hidden=m!==true;document.querySelectorAll('[data-multi-income]').forEach(b=>b.classList.toggle('active',String(m)===b.dataset.multiIncome))}
@@ -86,6 +93,41 @@ function flxRenderIncomeCycle(){
   <p class="manager-copy">Your primary paycheck drives the journey. Mark other income received when it actually lands — only then does Dexx pool it into the plan.</p>
   ${rows.length?rows.map(x=>`<div class="flx-cycle-income ${x.r?'received':''}" data-testid="cycle-income-row"><div><strong>${escapeHTML(x.inc.name)}</strong><small>${x.r?'Received':'Expected'} ${dateText(x.date,{month:'short',day:'numeric'})}</small></div>${x.r?`<b>${money(x.r.amount)}</b><button type="button" class="secondary" data-income-unreceive="${x.inc.id}" data-date="${x.date}">Undo</button>`:`<input type="number" inputmode="decimal" min="0" step="0.01" value="${Number(x.inc.amount).toFixed(2)}" data-receive-amount aria-label="Amount received"/><button type="button" class="primary" data-income-receive="${x.inc.id}" data-date="${x.date}" data-testid="income-mark-received">RECEIVED</button>`}</div>`).join(''):'<p class="empty-copy">No other income expected before your next payday.</p>'}`;
 }
+/* 4.4 multi-main: the mains manager. The anchor check is edited in Check
+   Details; this form adds further main incomes only. The form carries no
+   list element of its own: flxRenderIncomeLists fills every
+   [data-income-list] host with additional incomes, so the mains list is
+   rendered separately into #flxMainIncomeList. */
+function flxMainFormHTML(){
+  return `<form class="flx-income-form" data-main-form="main">
+    <input type="hidden" data-f="id"/>
+    <div class="form-grid"><label>Main income name<input data-f="name" placeholder="Second job, spouse's check…" maxlength="40" data-testid="main-income-name"/></label>
+    <label>Amount each time<input data-f="amount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="$0.00" data-testid="main-income-amount"/></label></div>
+    <div class="form-grid"><label>How often<select data-f="frequency" data-testid="main-income-frequency"><option value="weekly">Weekly</option><option value="biweekly">Every 2 weeks</option><option value="monthly" selected>Monthly</option><option value="once">One time</option></select></label>
+    <label>Next date<input data-f="nextDate" type="date" data-testid="main-income-date"/></label></div>
+    <button class="primary" type="submit" data-testid="main-income-save">SAVE MAIN INCOME</button>
+    <p class="status" data-main-status></p></form>`;
+}
+function flxRenderMainIncomes(){
+  const formHost=$('flxMainIncomeForm');
+  if(formHost&&!formHost.dataset.ready){formHost.innerHTML=flxMainFormHTML();formHost.dataset.ready='1'}
+  const listHost=$('flxMainIncomeList');if(!listHost)return;
+  const anchorRow=Number(data.paycheck||0)>0?`<div class="managed-bill flx-income-row"><div class="managed-bill-main"><div><strong>Main paycheck (anchor)</strong><span>Drives the journey · ${dateText(data.payDate,{month:'short',day:'numeric'})}</span></div><b>${money(data.paycheck)}</b></div><div class="managed-bill-meta"><span>Edited in Check Details</span></div></div>`:'';
+  const mains=Array.isArray(data.mainIncomes)?data.mainIncomes:[];
+  const rows=mains.map(i=>`<div class="managed-bill flx-income-row" data-testid="main-income-row"><div class="managed-bill-main"><div><strong>${escapeHTML(i.name)}</strong><span>${FLX_FREQ[i.frequency]||'Monthly'} · next ${dateText(i.nextDate,{month:'short',day:'numeric'})}</span></div><b>${money(i.amount)}</b></div><div class="managed-bill-meta"><span>Paydays count in reserves</span><div><button type="button" data-main-edit="${i.id}">Edit</button><button type="button" data-main-delete="${i.id}" class="danger-link">Delete</button></div></div></div>`).join('');
+  listHost.innerHTML=(anchorRow+rows)||'<p class="empty-copy">No main incomes yet. Your anchor check lives in Check Details; add other mains here.</p>';
+}
+document.addEventListener('submit',e=>{
+  const form=e.target.closest('[data-main-form]');if(!form)return;e.preventDefault();
+  const f=k=>form.querySelector(`[data-f="${k}"]`);const st=form.querySelector('[data-main-status]');
+  const name=f('name').value.trim(),amount=clamp(f('amount').value,0,1e9),nextDate=f('nextDate').value,frequency=f('frequency').value,id=f('id').value;
+  if(!name||amount<=0||!nextDate){st.textContent='Add the main income name, amount, and next date.';return}
+  flxEnsureData();const existing=id?data.mainIncomes.find(i=>i.id===id):null;
+  if(existing)Object.assign(existing,{name,amount,nextDate,frequency});else data.mainIncomes.push({id:flxId('main'),name,amount,frequency,nextDate,received:[]});
+  data.approvedPlan=null;
+  setRecoveryContext(existing?`Update main income: ${name}`:`Add main income: ${name}`,`${money(amount)} ${FLX_FREQ[frequency]||''} main income; next ${dateText(nextDate,{month:'short',day:'numeric'})}.`,'change');
+  save();form.reset();f('id').value='';st.textContent=existing?'Main income updated.':`${name} saved as a main income. Dexx counts its paydays in your reserves.`;
+});
 document.addEventListener('submit',e=>{
   const form=e.target.closest('[data-income-form]');if(!form)return;e.preventDefault();
   const f=k=>form.querySelector(`[data-f="${k}"]`);const st=form.querySelector('[data-income-status]');
@@ -103,6 +145,15 @@ document.addEventListener('click',e=>{
   if(multi){data.setup={...(data.setup||{}),multipleIncomes:multi.dataset.multiIncome==='true'};save({skipRecovery:true,skipActivity:true});return}
   const del=t.closest('[data-income-delete]');
   if(del){const inc=data.incomes.find(i=>i.id===del.dataset.incomeDelete);if(!inc)return;if(!confirm(`Delete ${inc.name}?`))return;data.incomes=data.incomes.filter(i=>i!==inc);setRecoveryContext(`Delete income: ${inc.name}`,'Additional income removed.','change');save();return}
+  /* 4.4 multi-main: promote moves the entry (it does not copy it), so its
+     received marks keep pooling through the mains path and never count
+     twice. Reserve math changes, so any approved plan is rebuilt. */
+  const prom=t.closest('[data-income-promote]');
+  if(prom){const inc=data.incomes.find(i=>i.id===prom.dataset.incomePromote);if(!inc)return;data.incomes=data.incomes.filter(i=>i!==inc);flxEnsureData();data.mainIncomes.push(inc);data.approvedPlan=null;setRecoveryContext(`Main income: ${inc.name}`,'Promoted from additional income; its paydays now count in reserves.','change');save();return}
+  const mdel=t.closest('[data-main-delete]');
+  if(mdel){const inc=(data.mainIncomes||[]).find(i=>i.id===mdel.dataset.mainDelete);if(!inc)return;if(!confirm(`Delete ${inc.name}?`))return;data.mainIncomes=data.mainIncomes.filter(i=>i!==inc);data.approvedPlan=null;setRecoveryContext(`Delete main income: ${inc.name}`,'Main income removed.','change');save();return}
+  const med=t.closest('[data-main-edit]');
+  if(med){const inc=(data.mainIncomes||[]).find(i=>i.id===med.dataset.mainEdit);const form=med.closest('.card')?.querySelector('[data-main-form]');if(!inc||!form)return;const f=k=>form.querySelector(`[data-f="${k}"]`);f('id').value=inc.id;f('name').value=inc.name;f('amount').value=inc.amount;f('frequency').value=inc.frequency;f('nextDate').value=inc.nextDate;form.scrollIntoView({behavior:'smooth',block:'center'});return}
   const ed=t.closest('[data-income-edit]');
   if(ed){const inc=data.incomes.find(i=>i.id===ed.dataset.incomeEdit);const form=ed.closest('.card')?.querySelector('[data-income-form]');if(!inc||!form)return;const f=k=>form.querySelector(`[data-f="${k}"]`);f('id').value=inc.id;f('name').value=inc.name;f('amount').value=inc.amount;f('frequency').value=inc.frequency;f('nextDate').value=inc.nextDate;form.scrollIntoView({behavior:'smooth',block:'center'});return}
   const rec=t.closest('[data-income-receive]');
@@ -538,7 +589,7 @@ document.addEventListener('change',e=>{
 });
 
 /* ───────────────────────── wiring ───────────────────────── */
-function flxRenderAll(){try{flxEnsureData();flxApplyMode();flxRenderIncomeLists();flxRenderIncomeCycle();flxRenderBusiness();flxRenderNotifySettings()}catch(err){console.warn('Financial Lab next modules render failed',err)}}
+function flxRenderAll(){try{flxEnsureData();flxApplyMode();flxRenderIncomeLists();flxRenderIncomeCycle();flxRenderMainIncomes();flxRenderBusiness();flxRenderNotifySettings()}catch(err){console.warn('Financial Lab next modules render failed',err)}}
 (function flxInit(){
   flxEnsureData();
   const mount=(id,scope)=>{const el=$(id);if(el&&!el.dataset.ready){el.innerHTML=flxIncomeFormHTML(scope);el.dataset.ready='1'}};
