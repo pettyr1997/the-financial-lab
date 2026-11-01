@@ -1307,15 +1307,7 @@ body[data-view="dexx"] .dexx-fab,body[data-view="start"] .dexx-fab,body.front-do
 .quick-list button span{font-size:17px}
 .quick-list button:last-child{border-bottom:0}
 
-/* 4.4 multi-main: plan's household income list (app.js renderPlanMainIncomes). */
-.plan-main-incomes{margin:14px 0 4px}
-.plan-main-incomes .section-head{margin-bottom:6px}
-.plan-main-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid rgba(0,0,0,.08)}
-.plan-main-row>div{display:flex;flex-direction:column;gap:2px}
-.plan-main-row small{opacity:.72}
-.plan-main-row.received b{color:#1a7f37}
-
-/* Unexpected fund: allocation-bar segment colors (bar children are positional:
-   1 bills, 2 reserve, 3 savings, 4 debt, 5 fund, 6 safe). */
-.allocation-bar i:nth-child(5){background:#ffd23e}
-.allocation-bar i:nth-child(6){background:#9da7a1}
+/* ── Notch clearance: the topbar sat under the status bar, making the hamburger untappable ── */
+.topbar{padding-top:calc(9px + env(safe-area-inset-top));height:calc(82px + env(safe-area-inset-top));}
+@media(max-width:390px){.topbar{height:calc(76px + env(safe-area-inset-top));}}
+.quick-drawer-panel{padding-top:calc(18px + env(safe-area-inset-top));}
