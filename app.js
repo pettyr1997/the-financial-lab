@@ -2026,8 +2026,14 @@ function commandCenterPlan(c){
   const a=data.approvedPlan;
   if(!a)return c;
   const currentSpent=Number(c.expenseTotal||0),approvedSpent=Number(a.spent||0);
-  const addedSpending=Math.max(0,currentSpent-approvedSpent);
   const currentFundSpent=(c.currentExpenses||[]).filter(x=>x.source==='unexpected').reduce((s,x)=>s+Number(x.amount)||0,0);
+  /* Fund-covered spending must not reduce safe-to-spend: the fund pays it.
+     Covered amount at approval = setAside minus fundRemaining then; only the
+     increase since approval is excluded from added spending. Old snapshots
+     have no setAside, so coveredAdded is 0 and behavior is unchanged. */
+  const setAsideSnap=Number(a.setAside)||0,approvedFundSpent=Math.max(0,setAsideSnap-(Number(a.fundRemaining)||0));
+  const coveredAdded=Math.max(0,Math.min(currentFundSpent,setAsideSnap)-Math.min(approvedFundSpent,setAsideSnap));
+  const addedSpending=Math.max(0,currentSpent-approvedSpent-coveredAdded);
   return {...c,
     paycheck:Number(a.paycheck)||0,
     payNow:Number(a.payNow)||0,
