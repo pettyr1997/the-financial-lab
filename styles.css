@@ -1314,3 +1314,8 @@ body[data-view="dexx"] .dexx-fab,body[data-view="start"] .dexx-fab,body.front-do
 .plan-main-row>div{display:flex;flex-direction:column;gap:2px}
 .plan-main-row small{opacity:.72}
 .plan-main-row.received b{color:#1a7f37}
+
+/* Unexpected fund: allocation-bar segment colors (bar children are positional:
+   1 bills, 2 reserve, 3 savings, 4 debt, 5 fund, 6 safe). */
+.allocation-bar i:nth-child(5){background:#ffd23e}
+.allocation-bar i:nth-child(6){background:#9da7a1}

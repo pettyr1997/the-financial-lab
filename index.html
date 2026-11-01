@@ -204,6 +204,7 @@
     <article><span>BILL RESERVE</span><strong id="commandReserve">$0.00</strong><small>Future bills protected</small></article>
     <article><span>SAVINGS</span><strong id="commandSavings">$0.00</strong><small>Move forward</small></article>
     <article><span>EXTRA DEBT</span><strong id="commandDebt">$0.00</strong><small>Optional progress</small></article>
+    <article><span>UNEXPECTED FUND</span><strong id="commandFund">$0.00</strong><small>Left to use</small></article>
     <article><span>SPENT</span><strong id="commandSpent">$0.00</strong><small>This paycheck cycle</small></article>
     <article><span>NEXT PAYDAY</span><strong id="commandNextPayday">—</strong><small id="commandDaysToPayday">Schedule ready</small></article>
   </div>
@@ -297,13 +298,13 @@
 <article><span>SAFE TO SPEND</span><strong id="planSpend">$0.00</strong><small>Until next payday</small></article>
 </div>
 <div class="plan-main-incomes" id="planMainIncomes"></div>
-<div aria-label="Paycheck allocation" class="allocation-bar"><i id="allocBills"></i><i id="allocReserve"></i><i id="allocSavings"></i><i id="allocDebt"></i><i id="allocSpend"></i></div>
+<div aria-label="Paycheck allocation" class="allocation-bar"><i id="allocBills"></i><i id="allocReserve"></i><i id="allocSavings"></i><i id="allocDebt"></i><i id="allocFund"></i><i id="allocSpend"></i></div>
 <div class="dexx-plan"><strong>DEXX RECOMMENDS</strong><p id="dexxPlanText">Add your paycheck and bill dates to create a plan.</p><div class="reserve-intel"><span>RESERVE MEMORY</span><small>Dexx remembers reserves only after you approve a payday plan, then carries those protected dollars into the next paycheck.</small></div></div>
 <div class="allocation-list" id="allocationList"></div>
 <div class="bill-coverage" id="billCoverage" aria-label="Which bills this check covers"></div>
 <div class="adjust-grid">
 <label>Adjust savings<input id="customSavings" inputmode="decimal" min="0" placeholder="$0.00" step="0.01" type="number"/></label>
-<label>Extra debt payment<input id="customDebt" inputmode="decimal" min="0" placeholder="$0.00" step="0.01" type="number"/></label>
+<label>Extra debt payment<input id="customDebt" inputmode="decimal" min="0" placeholder="$0.00" step="0.01" type="number"/></label><label>Set aside for unexpected<input id="unexpectedFund" inputmode="decimal" min="0" placeholder="$0.00" step="0.01" type="number"/></label>
 </div>
 <button class="primary approve" id="approvePlan" type="button">APPROVE THIS PAYDAY PLAN</button>
 <p class="status" id="approvalStatus"></p>
@@ -388,6 +389,7 @@
     <input id="expenseId" type="hidden"/>
     <div class="form-grid"><label>Expense name<input id="expenseName" maxlength="60" placeholder="Gas" required/></label><label>Amount<input id="expenseAmount" inputmode="decimal" min="0" step="0.01" placeholder="$0.00" type="number" required/></label></div>
     <div class="form-grid"><label>Category<select id="expenseCategory"><option value="gas">Gas</option><option value="groceries">Groceries</option><option value="food">Food & dining</option><option value="entertainment">Entertainment</option><option value="personal">Personal</option><option value="haircut">Haircut</option><option value="shopping">Shopping</option><option value="transportation">Transportation</option><option value="medical">Medical</option><option value="other" selected>Other</option></select></label><label>Date<input id="expenseDate" type="date" required/></label></div>
+    <div id="expenseFundRow"><label class="toggle-label"><input id="expenseFundToggle" type="checkbox"/> From unexpected fund</label></div>
     <label>Note <span class="optional-label">optional</span><input id="expenseNote" maxlength="100" placeholder="Fill-up, lunch, haircut…"/></label>
     <div class="manager-actions"><button class="primary" id="saveExpense" type="submit">SAVE EXPENSE</button><button class="secondary" hidden id="cancelExpenseEdit" type="button">CANCEL EDIT</button></div>
     <p class="status" id="expenseStatus"></p>
