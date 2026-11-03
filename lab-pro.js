@@ -278,9 +278,10 @@ document.addEventListener('click',async e=>{
 document.addEventListener('change',e=>{if(e.target.id==='bizContrPick'){const w=$('bizContrNameWrap');if(w)w.hidden=!!e.target.value}});
 
 /* ═════════════ CLOUD ACCOUNTS + SYNC + SERVER PUSH ═════════════ */
-/* After running supabase/sql/cloud-sync.sql and generating VAPID keys, paste
-   the PUBLIC VAPID key here to switch on server push alerts. */
-const FL_PUSH_VAPID_PUBLIC_KEY='';
+/* Server push switch. A real public key is stamped here, so server push
+   is ON for signed-in Cloud Account users. The PRIVATE key never goes in
+   code and never goes in chat. */
+const FL_PUSH_VAPID_PUBLIC_KEY='BMFs8KKWCsP45iS4Wrjk0_zdupMgLzpL9qqsWrQtOF8bd0OjPWBnrr2FJX1kKMEkQzh5c-A3d99hLoZX7rJ9svw';
 const FLP_SESSION='financial-lab-cloud-session-v1',FLP_META='financial-lab-cloud-meta-v1';
 const flpJSON=(k,d)=>{try{return JSON.parse(localStorage.getItem(k)||'null')??d}catch{return d}};
 let flpSession=flpJSON(FLP_SESSION,null);
@@ -323,7 +324,7 @@ function flpApplyRemote(row){
 }
 const flpHasLocalData=()=>{const s=data.setup||{},b=data.business||{};return !!(s.completed||s.completedAt||s.currentMoneyConfirmed||s.incomeConfirmed||Number(s.expectedPaycheck)>0||(data.bills||[]).length||(data.expenseRecords||[]).length||(data.incomes||[]).length||Number(data.paycheck)>0||Number(data.currentBalance)>0||['invoices','expenses','mileage','contractors','draws'].some(k=>Array.isArray(b[k])&&b[k].length))};
 let flpSyncTimer=null,flpSyncing=false;
-function flpScheduleSync(){if(!flpSession)return;flpMeta.dirty=true;flpSaveMeta();clearTimeout(flpSyncTimer);flpSyncTimer=setTimeout(()=>flpSyncNow(),2500)}
+function flpScheduleSync(){if(!flpSession)return;flpMeta.dirty=true;flpSaveMeta();clearTimeout(flpSyncTimer);flpSyncTimer=setTimeout(()=>flpSyncNow(),2500);flpQueueNotifyUpload()}
 async function flpSyncNow({fromOpen=false}={}){
   if(!flpSession||!navigator.onLine)return;if(flpSyncing){clearTimeout(flpSyncTimer);flpSyncTimer=setTimeout(()=>flpSyncNow(),2500);return}flpSyncing=true;
   try{
@@ -338,7 +339,7 @@ async function flpSyncNow({fromOpen=false}={}){
     else if(flpMeta.dirty)await flpPush();
   }catch(err){
     flpMeta.status=err.code==='42P01'||/relation|does not exist|schema cache/i.test(err.message)?'Cloud tables are not set up yet (run cloud-sync.sql).':`Sync paused: ${err.message}`;flpSaveMeta();
-  }finally{flpSyncing=false;flpRenderCloud()}
+  }finally{flpSyncing=false;flpRenderCloud();flpQueueNotifyUpload()}
 }
 function flpOpenConflict(row){
   const s=$('flpConflictSheet');if(!s)return;s._row=row;
@@ -352,12 +353,120 @@ async function flpEnablePush(){
     const b64=s=>Uint8Array.from(atob((s+'==='.slice((s.length+3)%4)).replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
     const sub=(await reg.pushManager.getSubscription())||(await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64(FL_PUSH_VAPID_PUBLIC_KEY)}));
     await flpFetch('/rest/v1/push_subscriptions?on_conflict=endpoint',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({user_id:flpSession.user.id,endpoint:sub.endpoint,subscription:sub.toJSON()})});
-    flpMeta.pushActive=true;flpSaveMeta();return true;
+    flpMeta.pushActive=true;flpSaveMeta();flpQueueNotifyUpload();return true;
   }catch(err){console.warn('Push subscribe failed',err);flpMeta.pushActive=false;flpSaveMeta();return false}
+}
+/* ── Server push schedule upload ────────────────────────────── */
+/* Uploads the minimal notification schedule (bill names + due dates,
+   payday dates + check-in flags — NO amounts, ever) and refreshes
+   timezone + toggles on the user's subscription rows. Runs debounced
+   after saves, sign-in, sync, and push-enable. Fire-and-forget: any
+   failure is logged and retried on the next trigger, never surfaced. */
+let flpNotifyTimer = null;
+async function flpUploadNotifySchedule() {
+  try {
+    if (!flpSession || !flpSession.user) return;
+    if (typeof data === 'undefined' || !data) return;
+    const userId = flpSession.user.id;
+    const st = (typeof flxNotifySettings === 'function') ? flxNotifySettings() : { enabled: false };
+    const tz = (typeof Intl !== 'undefined' && Intl.DateTimeFormat)
+      ? (Intl.DateTimeFormat().resolvedOptions().timeZone || '')
+      : '';
+    const rows = [];
+    const today = (typeof flxTodayIso === 'function') ? flxTodayIso() : iso(new Date());
+
+    /* Bills: next 30 days, unpaid, not autopay, due today or later.
+       Names + dates only — amount is never read. */
+    try {
+      const end = iso(flxAddDays(new Date(), 30));
+      const occ = (typeof billOccurrences === 'function') ? billOccurrences(today, end) : [];
+      for (const o of occ) {
+        const d = o.occurrenceDate || o.date;
+        if (!d || d < today || o.paid || o.autopay) continue;
+        rows.push({ user_id: userId, item_type: 'bill', item_name: o.name || 'Bill', due_date: d, checked_in: false });
+      }
+    } catch (_) { /* bills section failed; payday section still runs */ }
+
+    /* Paydays: past 7 days through next 30 days. A payday is included
+       when flxIsPayday says so OR it sits in the missed list (the two
+       sources cover each other: flxIsPayday can miss an old active
+       cycle, missedCheckins only lists strictly-past unreconciled
+       paydays). checked_in comes from the reconciled/skipped sets, so
+       an early check-in (before 8am) correctly suppresses the alert.
+       Rows that ARE checked in are omitted entirely — the server only
+       needs unchecked rows, and omitting them is what stops a stale
+       missed nudge after a late check-in. */
+    try {
+      const rec = (typeof reconciledPayDateSet === 'function') ? reconciledPayDateSet() : new Set();
+      const skp = (typeof skippedPayDateSet === 'function') ? skippedPayDateSet() : new Set();
+      const missed = new Set();
+      try {
+        (typeof missedCheckins === 'function' ? missedCheckins() : []).forEach((m) => { if (m && m.payDate) missed.add(m.payDate); });
+      } catch (_) {}
+      for (let i = -7; i <= 30; i++) {
+        const d = iso(flxAddDays(new Date(), i));
+        const isPay = (typeof flxIsPayday === 'function') ? flxIsPayday(d) : false;
+        if (!isPay && !missed.has(d)) continue;
+        if (rec.has(d) || skp.has(d)) continue;
+        rows.push({ user_id: userId, item_type: 'payday', item_name: null, due_date: d, checked_in: false });
+      }
+    } catch (_) { /* payday section failed; bills section already ran */ }
+
+    /* Timezone + toggles onto every subscription row this user has.
+       Harmless when no rows exist yet (PATCH matches zero rows). */
+    const toggles = {
+      enabled: !!st.enabled,
+      bills: st.bills !== false,
+      payday: st.payday !== false,
+      missed: st.missed !== false,
+    };
+    try {
+      await flpFetch(`/rest/v1/push_subscriptions?user_id=eq.${encodeURIComponent(userId)}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ timezone: tz || null, toggles }),
+      });
+    } catch (_) {}
+
+    /* Replace the schedule wholesale. Last upload wins; every data
+       change re-uploads, so a 30-day window stays self-consistent.
+       (A run of the hourly job landing between DELETE and POST sees
+       zero rows and skips the user for that hour — harmless.) */
+    try {
+      await flpFetch(`/rest/v1/notification_schedule?user_id=eq.${encodeURIComponent(userId)}`, { method: 'DELETE' });
+    } catch (_) {}
+    if (rows.length) {
+      try {
+        await flpFetch('/rest/v1/notification_schedule', {
+          method: 'POST',
+          headers: { Prefer: 'return=minimal' },
+          body: JSON.stringify(rows),
+        });
+      } catch (_) {}
+    }
+  } catch (err) {
+    console.warn('Notify schedule upload skipped', err);
+  }
+}
+function flpQueueNotifyUpload() {
+  if (!flpSession) return;
+  clearTimeout(flpNotifyTimer);
+  flpNotifyTimer = setTimeout(() => { flpUploadNotifySchedule(); }, 2500);
 }
 /* With server push active, the server sends the one daily alert — the device stops sending its own so you never get two. */
 const flpBaseSendDaily=flxSendDaily;
 flxSendDaily=function(force){if(!force&&flpMeta.pushActive&&flpSession)return Promise.resolve(false);return flpBaseSendDaily(force)};
+/* ── Owner login visibility ──
+   After a fresh sign-in (email code verified), record one row in login_events:
+   who (user id + sign-in email), when (server timestamp), app version, device.
+   Fire-and-forget: a missing table or offline device must never block sign-in
+   or sync. No money, bills, balances, or chat ever travels with it. The table
+   is insert-only for app users; the owner reads it in Supabase (RLS blocks
+   app-side reads), so testers never see each other's logins. */
+function flpRecordLogin(s){
+  if(!s||!s.user||!s.user.id)return Promise.resolve();
+  return flpFetch('/rest/v1/login_events',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({user_id:s.user.id,email:s.user.email||'',app:'4.4.0.0',device:navigator.userAgent.slice(0,80)})}).catch(()=>{});
+}
 function flpRenderCloud(){
   const card=$('cloudCard');if(!card)return;
   const signed=!!flpSession?.user;
@@ -380,7 +489,7 @@ document.addEventListener('submit',async e=>{
   }
   if(e.target.id==='cloudCodeForm'){
     e.preventDefault();const email=e.target.dataset.email,token=$('cloudCodeInput').value.replace(/\s/g,'');if(!token){return}
-    try{const s=await flpFetch('/auth/v1/verify',{method:'POST',body:JSON.stringify({email,token,type:'email'})},false);if(!s.expires_at)s.expires_at=Math.floor(Date.now()/1000)+(s.expires_in||3600);flpSetSession(s);Object.assign(flpMeta,{remoteUpdatedAt:'',dirty:false,status:''});flpSaveMeta();e.target.reset();e.target.hidden=true;flpRenderCloud();await flpSyncNow({fromOpen:true});flpEnablePush()}
+    try{const s=await flpFetch('/auth/v1/verify',{method:'POST',body:JSON.stringify({email,token,type:'email'})},false);if(!s.expires_at)s.expires_at=Math.floor(Date.now()/1000)+(s.expires_in||3600);flpSetSession(s);Object.assign(flpMeta,{remoteUpdatedAt:'',dirty:false,status:''});flpSaveMeta();flpRecordLogin(s);e.target.reset();e.target.hidden=true;flpRenderCloud();await flpSyncNow({fromOpen:true});flpEnablePush();flpQueueNotifyUpload()}
     catch(err){$('cloudStatus').textContent='That code didn\'t work or expired. Request a new one.'}
   }
 });
