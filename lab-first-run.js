@@ -186,7 +186,9 @@
       '<section class="fl-screen active" id="flScreen1">' +
         '<div class="fl-grow" style="display:flex; flex-direction:column; justify-content:center;">' +
           '<div class="fl-brand">Financial Lab</div>' +
+          '<img class="fl-dexx" src="dexx-character-clean.jpg" alt="Dexx, the Financial Lab coach" onerror="this.onerror=null;this.style.display=\'none\'"/>' +
           '<h1>See what your paycheck can really do.</h1>' +
+          '<p class="fl-dexx-quote">&ldquo;Before you spend the check, let&rsquo;s run the experiment.&rdquo;</p>' +
         '</div>' +
         '<button class="fl-btn" type="button" id="flShowPlan">Show me my plan</button>' +
         '<div class="fl-links">' +

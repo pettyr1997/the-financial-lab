@@ -148,6 +148,27 @@
   margin: 10px 0 8px;
   font-weight: 800;
 }
+
+/* Dexx on Screen 1 — the app's own character image (dexx-character-clean.jpg,
+   same file and onerror guard as the live front door). A framed photo: the
+   image's dark background reads as a card in the light set and blends into
+   the dark set, so it works in both. Left-aligned with the headline. */
+#flFirstRun .fl-dexx {
+  display: block;
+  width: 172px;
+  max-width: 58vw;
+  height: auto;
+  margin: 18px 0 6px;
+  border-radius: 16px;
+  box-shadow: var(--fl-shadow);
+}
+#flFirstRun .fl-dexx-quote {
+  font-size: 15px;
+  line-height: 1.45;
+  font-style: italic;
+  color: var(--fl-ink-soft);
+  margin: 10px 0 0;
+}
 #flFirstRun .fl-lede { font-size: 18px; line-height: 1.45; color: var(--fl-ink-soft); margin: 0; }
 #flFirstRun .fl-fine { font-size: 14px; color: var(--fl-ink-faint); line-height: 1.5; }
 
