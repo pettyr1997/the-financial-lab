@@ -1,0 +1,469 @@
+/* Financial Lab 4.4.0.0 — Part A first-run flow styles.
+   Adapted from the approved first-run preview (~/workspace/ts-spaces/first-run-preview/index.html).
+   Tokens and type scale are the brief section 4 values, verbatim.
+   Self-contained: this file does NOT depend on the Part B stylesheet patch.
+   Everything is scoped under #flFirstRun with fl- class names and --fl-*
+   variables so no rule can leak into the live app's own styles. */
+
+#flFirstRun {
+  --fl-bg: #f4f7f2;
+  --fl-surface: #ffffff;
+  --fl-surface-2: #eef3ec;
+  --fl-ink: #16211a;
+  --fl-ink-soft: #4c5a50;
+  --fl-ink-faint: #84917f;
+  --fl-line: #dde5da;
+  --fl-green: #0e7a3d;
+  --fl-green-dark: #0a5c2e;
+  --fl-green-soft: #e3f2e6;
+  --fl-green-ink: #0a5c2e;
+  --fl-amber: #b45309;
+  --fl-amber-soft: #fdf1e0;
+  --fl-red: #b3261e;
+  --fl-red-soft: #fbeae9;
+  --fl-shadow: 0 10px 30px rgba(18, 46, 26, 0.10);
+  --fl-radius: 16px;
+
+  position: fixed;
+  inset: 0;
+  z-index: 10001; /* must sit above the app's .front-door (10000) or the old front door covers the flow */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: var(--fl-bg);
+  color: var(--fl-ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-color-scheme: dark) {
+  #flFirstRun {
+    --fl-bg: #0d130e;
+    --fl-surface: #17211a;
+    --fl-surface-2: #1e2b21;
+    --fl-ink: #eef4ee;
+    --fl-ink-soft: #b3c2b5;
+    --fl-ink-faint: #7e8f81;
+    --fl-line: #2a3a2e;
+    --fl-green: #2fbf71;
+    --fl-green-dark: #25a35e;
+    --fl-green-soft: #173324;
+    --fl-green-ink: #7fe0a8;
+    --fl-amber: #f2b25c;
+    --fl-amber-soft: #33270f;
+    --fl-red: #ff9d94;
+    --fl-red-soft: #3a1d1a;
+    --fl-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  }
+}
+
+#flFirstRun * { box-sizing: border-box; }
+#flFirstRun button, #flFirstRun input { font: inherit; }
+#flFirstRun button { cursor: pointer; }
+
+#flFirstRun .fl-stage {
+  max-width: 460px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 0 20px calc(20px + env(safe-area-inset-bottom));
+}
+
+/* ---------- progress ---------- */
+#flFirstRun .fl-progress {
+  display: flex;
+  gap: 6px;
+  padding: 18px 2px 6px;
+}
+#flFirstRun .fl-progress span {
+  flex: 1;
+  height: 5px;
+  border-radius: 99px;
+  background: var(--fl-line);
+  transition: background .35s ease;
+}
+#flFirstRun .fl-progress span.on { background: var(--fl-green); }
+
+#flFirstRun .fl-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 34px;
+}
+#flFirstRun .fl-back-btn {
+  border: 0;
+  background: none;
+  color: var(--fl-ink-soft);
+  font-size: 15px;
+  font-weight: 600;
+  padding: 8px 8px 8px 0;
+  display: none;
+}
+#flFirstRun .fl-back-btn.show { display: block; }
+#flFirstRun .fl-step-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fl-ink-faint);
+  letter-spacing: .02em;
+}
+
+/* ---------- screens ---------- */
+#flFirstRun .fl-screen {
+  display: none;
+  flex: 1;
+  flex-direction: column;
+  animation: flScreenIn .28s ease both;
+}
+#flFirstRun .fl-screen.active { display: flex; }
+@keyframes flScreenIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #flFirstRun .fl-screen { animation: none; }
+  #flFirstRun * { transition: none !important; }
+}
+
+#flFirstRun .fl-grow { flex: 1; }
+
+/* ---------- type ---------- */
+#flFirstRun .fl-brand {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--fl-green-ink);
+}
+#flFirstRun h1 {
+  font-size: 40px;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  margin: 14px 0 12px;
+  font-weight: 800;
+}
+#flFirstRun h2 {
+  font-size: 27px;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  margin: 10px 0 8px;
+  font-weight: 800;
+}
+#flFirstRun .fl-lede { font-size: 18px; line-height: 1.45; color: var(--fl-ink-soft); margin: 0; }
+#flFirstRun .fl-fine { font-size: 14px; color: var(--fl-ink-faint); line-height: 1.5; }
+
+/* ---------- buttons ---------- */
+#flFirstRun .fl-btn {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: 14px;
+  background: var(--fl-green);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  padding: 17px 20px;
+  box-shadow: 0 6px 18px rgba(14, 122, 61, 0.28);
+  transition: transform .12s ease, background .2s ease, opacity .2s ease;
+}
+#flFirstRun .fl-btn:active { transform: scale(.985); background: var(--fl-green-dark); }
+#flFirstRun .fl-btn[disabled] { opacity: .45; box-shadow: none; }
+#flFirstRun .fl-btn-quiet {
+  display: block;
+  width: 100%;
+  border: 1.5px solid var(--fl-line);
+  border-radius: 14px;
+  background: var(--fl-surface);
+  color: var(--fl-ink);
+  font-size: 16px;
+  font-weight: 700;
+  padding: 15px 20px;
+}
+#flFirstRun .fl-btn-ghost {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: none;
+  color: var(--fl-ink-soft);
+  font-size: 15px;
+  font-weight: 600;
+  padding: 12px;
+}
+/* Secondary links on Screen 1: Business Lab / Restore / detailed setup.
+   Links, not buttons — they must not compete with "Show me my plan". */
+#flFirstRun .fl-links { margin-top: 16px; text-align: center; }
+#flFirstRun .fl-link {
+  display: inline-block;
+  border: 0;
+  background: none;
+  color: var(--fl-ink-soft);
+  font-size: 15px;
+  font-weight: 600;
+  padding: 8px 10px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+#flFirstRun .fl-link-quiet {
+  color: var(--fl-ink-faint);
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+/* "I don't know yet" link under the Screen 3 amount field. Quiet link
+   styling; the .on state (green + check) uses the same tokens in the
+   light and dark sets, so it works in both. */
+#flFirstRun .fl-unknown-link {
+  display: inline-block;
+  border: 0;
+  background: none;
+  color: var(--fl-ink-soft);
+  font-size: 15px;
+  font-weight: 600;
+  padding: 2px 0 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-align: left;
+}
+#flFirstRun .fl-unknown-link.on { color: var(--fl-green-ink); font-weight: 700; }
+#flFirstRun .fl-unknown-link.on::before { content: "\2713  "; }
+#flFirstRun .fl-field input:disabled { opacity: .45; }
+
+/* One-tap chips (payday + bill names). Pill buttons on the existing
+   --fl-* tokens, so they work in both the light and dark sets. */
+#flFirstRun .fl-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 14px; }
+#flFirstRun .fl-chip {
+  border: 1.5px solid var(--fl-line);
+  border-radius: 99px;
+  background: var(--fl-surface);
+  color: var(--fl-ink);
+  font-size: 14.5px;
+  font-weight: 700;
+  padding: 9px 14px;
+  transition: background .15s ease, border-color .15s ease;
+}
+#flFirstRun .fl-chip:active { background: var(--fl-surface-2); }
+#flFirstRun .fl-chip.on {
+  border-color: var(--fl-green);
+  background: var(--fl-green-soft);
+  color: var(--fl-green-ink);
+}
+
+/* ---------- plan card ---------- */
+#flFirstRun .fl-plan-card {
+  background: var(--fl-surface);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius);
+  box-shadow: var(--fl-shadow);
+  padding: 20px;
+}
+#flFirstRun .fl-plan-tag {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--fl-amber);
+  background: var(--fl-amber-soft);
+  border-radius: 99px;
+  padding: 4px 10px;
+  margin-bottom: 14px;
+}
+#flFirstRun .fl-plan-tag.mine {
+  color: var(--fl-green-ink);
+  background: var(--fl-green-soft);
+}
+#flFirstRun .fl-plan-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px dashed var(--fl-line);
+}
+#flFirstRun .fl-plan-row:last-child { border-bottom: 0; }
+#flFirstRun .fl-plan-row .fl-lbl { font-size: 16px; color: var(--fl-ink-soft); font-weight: 600; }
+#flFirstRun .fl-plan-row .fl-val {
+  font-size: 20px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+#flFirstRun .fl-plan-row .fl-sub { display: block; font-size: 13px; font-weight: 500; color: var(--fl-ink-faint); margin-top: 2px; }
+#flFirstRun .fl-plan-row.hero { padding-top: 14px; }
+#flFirstRun .fl-plan-row.hero .fl-lbl { color: var(--fl-ink); font-size: 17px; }
+#flFirstRun .fl-plan-row.hero .fl-val { font-size: 30px; color: var(--fl-green-ink); }
+#flFirstRun .fl-plan-row.hero .fl-val.neg { color: var(--fl-red); }
+#flFirstRun .fl-flow {
+  display: flex; align-items: stretch; gap: 0;
+  margin: 4px 0 2px;
+}
+#flFirstRun .fl-flow .fl-node {
+  flex: 1; text-align: center; padding: 12px 4px;
+  background: var(--fl-surface-2); border-radius: 12px;
+}
+#flFirstRun .fl-flow .fl-node .fl-n-lbl { font-size: 11.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--fl-ink-faint); }
+#flFirstRun .fl-flow .fl-node .fl-n-val { font-size: 19px; font-weight: 800; font-variant-numeric: tabular-nums; margin-top: 3px; }
+#flFirstRun .fl-flow .fl-node.spend { background: var(--fl-green-soft); }
+#flFirstRun .fl-flow .fl-node.spend .fl-n-val { color: var(--fl-green-ink); }
+#flFirstRun .fl-flow .fl-chev { align-self: center; color: var(--fl-ink-faint); font-size: 15px; padding: 0 3px; }
+
+/* ---------- forms ---------- */
+#flFirstRun .fl-field { margin-bottom: 16px; }
+#flFirstRun .fl-field label {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fl-ink-soft);
+  margin-bottom: 7px;
+}
+#flFirstRun .fl-field input {
+  width: 100%;
+  border: 1.5px solid var(--fl-line);
+  border-radius: 12px;
+  background: var(--fl-surface);
+  color: var(--fl-ink);
+  font-size: 18px;
+  font-weight: 600;
+  padding: 14px 16px;
+  outline: none;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+#flFirstRun .fl-field input:focus {
+  border-color: var(--fl-green);
+  box-shadow: 0 0 0 3px var(--fl-green-soft);
+}
+#flFirstRun .fl-field .fl-money { position: relative; }
+#flFirstRun .fl-field .fl-money::before {
+  content: "$";
+  position: absolute;
+  left: 16px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px; font-weight: 700; color: var(--fl-ink-faint);
+  pointer-events: none;
+}
+#flFirstRun .fl-field .fl-money input { padding-left: 32px; }
+#flFirstRun .fl-field-row { display: flex; gap: 12px; }
+#flFirstRun .fl-field-row .fl-field { flex: 1; }
+#flFirstRun .fl-field-row .fl-field.narrow { flex: 0 0 42%; }
+
+/* ---------- saved flash ---------- */
+#flFirstRun .fl-saved-flash {
+  position: fixed;
+  top: calc(14px + env(safe-area-inset-top));
+  left: 50%;
+  transform: translate(-50%, -80px);
+  background: var(--fl-green);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 800;
+  padding: 13px 26px;
+  border-radius: 99px;
+  box-shadow: 0 10px 26px rgba(14, 122, 61, 0.4);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform .3s cubic-bezier(.2, 1.4, .4, 1), opacity .25s ease;
+  z-index: 50;
+}
+#flFirstRun .fl-saved-flash.show { transform: translate(-50%, 0); opacity: 1; }
+
+/* ---------- live preview ---------- */
+#flFirstRun .fl-preview {
+  background: var(--fl-surface);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius);
+  box-shadow: var(--fl-shadow);
+  padding: 16px 18px 8px;
+  margin-top: 8px;
+}
+#flFirstRun .fl-preview h3 {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--fl-ink-faint);
+}
+#flFirstRun .fl-preview .fl-plan-row { padding: 9px 0; }
+#flFirstRun .fl-preview .fl-plan-row .fl-val { font-size: 18px; }
+#flFirstRun .fl-preview .fl-plan-row.hero .fl-val { font-size: 26px; }
+#flFirstRun .fl-pulse { animation: flPulse .5s ease; }
+@keyframes flPulse {
+  0% { color: var(--fl-green); transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+/* set-aside stepper */
+#flFirstRun .fl-stepper { display: inline-flex; align-items: center; gap: 10px; }
+#flFirstRun .fl-stepper button {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: 1.5px solid var(--fl-line);
+  background: var(--fl-surface);
+  color: var(--fl-ink);
+  font-size: 19px; font-weight: 700;
+  line-height: 1;
+  display: grid; place-items: center;
+}
+#flFirstRun .fl-stepper button:active { background: var(--fl-surface-2); }
+#flFirstRun .fl-stepper .fl-s-val { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; min-width: 52px; text-align: center; }
+
+/* ---------- bill list ---------- */
+#flFirstRun .fl-bill-list { list-style: none; margin: 0 0 6px; padding: 0; }
+#flFirstRun .fl-bill-list li {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--fl-surface);
+  border: 1px solid var(--fl-line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  animation: flScreenIn .25s ease both;
+}
+#flFirstRun .fl-bill-list .fl-b-name { font-weight: 700; font-size: 16px; }
+#flFirstRun .fl-bill-list .fl-b-due { font-size: 13px; color: var(--fl-ink-faint); display: block; margin-top: 1px; }
+#flFirstRun .fl-bill-list .fl-b-amt { margin-left: auto; font-weight: 800; font-variant-numeric: tabular-nums; font-size: 16px; }
+#flFirstRun .fl-bill-list .fl-b-x {
+  border: 0; background: none; color: var(--fl-ink-faint);
+  font-size: 20px; line-height: 1; padding: 4px 2px;
+}
+#flFirstRun .fl-warn {
+  display: none;
+  background: var(--fl-red-soft);
+  color: var(--fl-red);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.45;
+  margin-top: 10px;
+}
+#flFirstRun .fl-warn.show { display: block; }
+
+/* ---------- screen 5 ---------- */
+#flFirstRun .fl-big-check {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: var(--fl-green-soft);
+  color: var(--fl-green-ink);
+  display: grid; place-items: center;
+  font-size: 32px; font-weight: 800;
+  margin-bottom: 6px;
+}
+#flFirstRun .fl-next-step {
+  background: var(--fl-green-soft);
+  border-radius: var(--fl-radius);
+  padding: 18px;
+  margin-top: 18px;
+}
+#flFirstRun .fl-next-step .fl-ns-lbl {
+  font-size: 12px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--fl-green-ink); margin-bottom: 6px;
+}
+#flFirstRun .fl-next-step p { margin: 0; font-size: 17.5px; line-height: 1.5; font-weight: 600; }
+#flFirstRun .fl-final-bills { list-style: none; margin: 0; padding: 0; }
+#flFirstRun .fl-final-bills li {
+  display: flex; justify-content: space-between; gap: 10px;
+  padding: 7px 0; font-size: 15.5px;
+  border-bottom: 1px dashed var(--fl-line);
+}
+#flFirstRun .fl-final-bills li:last-child { border-bottom: 0; }
+#flFirstRun .fl-final-bills .fl-fb-due { color: var(--fl-ink-faint); font-size: 13px; display: block; }
+#flFirstRun .fl-final-bills .fl-fb-amt { font-weight: 700; font-variant-numeric: tabular-nums; }
