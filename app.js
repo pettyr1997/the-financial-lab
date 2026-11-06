@@ -1,6 +1,11 @@
 // Financial Lab 4.4.0.0 — + invoice builder, cash forecast, restore, receipts; Business Lab Pro (mileage, follow-ups, P&L, contractors) + cloud accounts
 function escapeHTML(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 const STORAGE_KEY = 'financial-lab-v3-data';
+const APPEARANCE_KEY='financial-lab-appearance';
+function appearanceChoice(){try{var v=localStorage.getItem(APPEARANCE_KEY);return (v==='light'||v==='dark'||v==='system')?v:'system';}catch(_){return 'system';}}
+function updateAppearanceChoices(mode){document.querySelectorAll('[data-appearance]').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-appearance')===mode);});}
+function applyAppearance(){var mode=appearanceChoice();var el=document.documentElement;if(mode==='system'){el.removeAttribute('data-theme');}else{el.setAttribute('data-theme',mode);}updateAppearanceChoices(mode);}
+function setAppearance(mode){if(mode!=='light'&&mode!=='dark'&&mode!=='system')return;try{localStorage.setItem(APPEARANCE_KEY,mode);}catch(_){}applyAppearance();}
 const RECOVERY_KEY='financial-lab-recovery-v1';
 const ACTIVITY_KEY='financial-lab-activity-v1';
 const EXECUTION_KEY='financial-lab-payday-execution-v1';
@@ -2714,14 +2719,13 @@ function renderPlanMainIncomes(c){
   host.innerHTML=rows.length?`<div class="section-head"><span>MAIN INCOMES</span></div>`+rows.join(''):'';
 }
 var slHomeDayMap={};
-function rbReveal(el){if(!el||!el.closest)return el;const d=el.closest('details');if(d)d.open=true;return el}
+function rbReveal(el){if(!el||!el.closest)return el;let d=el.closest('details');while(d){d.open=true;const p=d.parentElement;d=p&&p.closest?p.closest('details'):null}return el}
 function renderRbHome(c){
   const amount=$('rbHeroAmount');if(!amount)return;
   const p=commandCenterPlan(c);
   const plan=data.approvedPlan;
   const funding=plan?planFundingStatus(plan):'none';
   const planned=funding==='planned';
-  const protectedTotal=plan?Math.max(0,Number(plan.protected||0)):Math.max(0,Number(c.payNow||0)+Number(c.reserve||0)+Number(c.savings||0)+Number(c.debtPayment||0)+Number(c.setAside||0));
   const paycheck=Math.max(0,Number(p.paycheck||0));
   amount.textContent=money(p.safeToSpend||0);
   $('rbHeroLabel').textContent=planned?'PLANNED SAFE-TO-SPEND':plan?'SAFE-TO-SPEND':paycheck?'ESTIMATED SAFE-TO-SPEND':'SAFE-TO-SPEND';
@@ -2733,9 +2737,6 @@ function renderRbHome(c){
   else if(!ri.areas.bills){note.textContent='Bills are missing, so safe-to-spend is an estimate.';note.classList.add('watch')}
   else if(plan&&planned){note.textContent='Planned — nothing is funded until the check lands.';note.classList.remove('watch')}
   else{note.textContent='';note.classList.remove('watch')}
-  $('rbGlanceToday').textContent=money(Math.max(0,Number(data.currentBalance)||0));
-  $('rbGlanceCheck').textContent=money(paycheck);
-  $('rbGlanceProtected').textContent=money(protectedTotal);
 }
 function render(){reconcileExecutionState();const c=calc(),hour=new Date().getHours();renderNextPaycheckLaunchpad();renderPaydayCommandCenter(c);renderPaydayCatchup();renderLabBriefing(c);renderRbHome(c);renderLabReadinessIntelligence();renderMoneyJourney(c);renderJourneyBar(c);$('greeting').textContent=`GOOD ${hour<12?'MORNING':hour<17?'AFTERNOON':'EVENING'}, ${(data.researcherName||'RESEARCHER').toUpperCase()} 👋`;if($('healthScore'))$('healthScore').textContent=c.score;if($('scoreRing'))$('scoreRing').style.setProperty('--score',c.score);if($('healthMessage'))$('healthMessage').textContent=c.score>=80?'Your payday plan is fully protected.':c.score>=60?'Your plan is gaining strength.':'Complete Payday to improve your score.';const activeFunded=!!data.approvedPlan&&planFundingStatus(data.approvedPlan)==='funded';$('cashAvailable').textContent=money(activeFunded?c.safeToSpend:Math.max(0,Number(data.currentBalance)||0));$('billsWeek').textContent=money(c.payNow);$('savingsTotal').textContent=money(savingsGoalDefinitions().length?totalGoalSavings():c.savings);$('debtRemaining').textContent=money(totalDebtBalance());$('missionCount').textContent=`${c.missionDone} / 4`;$('progressText').textContent=`${c.progress}%`;$('progressBar').style.width=`${c.progress}%`;$('dexxObservation').textContent=recommendation(c);const conf=confidence(c);if($('confidenceLabel'))$('confidenceLabel').textContent=conf.level;if($('confidenceText'))$('confidenceText').textContent=conf.text;if($('confidenceBar'))$('confidenceBar').style.width=`${conf.pct}%`;renderTimeline(c);renderProfile();renderGuidedSetup();renderDebtManager();renderDebtOutlook();renderSavingsManager();renderSavingsOutlook();renderExpenseManager(c);renderReports(c);renderCalendar(c);renderHomeCalendar(c);renderSavingsFund(c);renderMemoryGuard();renderSafetyRecovery();renderHealthScore(c);renderDebtStatusControl();renderActionCenter(c);if(debtDefinitions().length&&$('debtAmount')){$('debtAmount').value=totalDebtBalance();$('debtAmount').readOnly=true;$('debtAmount').title='Managed automatically from Debt';}else if($('debtAmount')){$('debtAmount').readOnly=false;}document.querySelectorAll('[data-mission]').forEach(x=>x.checked=!!data.missions[x.dataset.mission]);billRows($('billList'),c.bills.filter(b=>!b.paid).slice(0,4));billRows($('allBills'),c.dueNowBills);prepareRows($('prepareBills'),c.upcomingBills);if($('reserveMemorySummary'))$('reserveMemorySummary').innerHTML=`<strong>${money(c.rememberedReserve)}</strong><span>already held back from approved payday plans</span>`;
   ['paycheck','currentBalance','saveAmount','debtAmount','debtGoal','savingsRate'].forEach(id=>{if($(id))$(id).value=data[id]||(id==='savingsRate'?10:'')});if($('payDate'))$('payDate').value=iso(dateAtNoon(data.payDate)||new Date());if($('nextPayday'))$('nextPayday').value=iso(dateAtNoon(data.nextPayday))||'';
@@ -3030,6 +3031,7 @@ $('approvePlan').onclick=()=>{
   setRecoveryContext('Approve payday plan',`${money(c.paycheck)} paycheck plan approved for ${dateText(data.payDate,{month:'short',day:'numeric'})}. Funding waits for actual-paycheck reconciliation.`,'approval');
   save();$('approvalStatus').textContent=beforePayday?`Payday plan approved for ${dateText(data.payDate,{month:'short',day:'numeric'})}. Nothing is funded yet — payday will unlock actual-paycheck check-in.`:`Payday plan approved. Enter the actual deposit and reconcile it before Dexx funds reserves, savings, or safe-to-spend.`;
 };
+$('slEditAmounts')?.addEventListener('click',()=>{const el=$('customSavings');rbReveal(el);if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.focus({preventScroll:true});}});
 $('clearBills').onclick=()=>resetFinancialArea('bills');
 function clearActiveCheck(){
   data.paycheck=0;data.currentBalance=0;data.payDate='';data.nextPayday='';data.customSavings=null;data.customDebt=null;data.approvedPlan=null;clearExecutionState();
@@ -3234,7 +3236,7 @@ normalizeApprovedPlanFunding();
 const initial=location.hash.slice(1);
 const firstRun=!data.setup||!data.setup.currentMoneyConfirmed;
 if(firstRun){openFrontDoor()}else{show(['laboratory','budget','profile','credit','savings','expense','reports','calendar','more','start','dexx','business'].includes(initial)?initial:'laboratory')}
-render();initializePersistentMemory();
+applyAppearance();render();initializePersistentMemory();
 
 $('calendarPrev')?.addEventListener('click',()=>{const base=calendarCursor||new Date();calendarCursor=new Date(base.getFullYear(),base.getMonth()-1,1,12);renderCalendar(calc())});
 $('calendarNext')?.addEventListener('click',()=>{const base=calendarCursor||new Date();calendarCursor=new Date(base.getFullYear(),base.getMonth()+1,1,12);renderCalendar(calc())});
@@ -3253,6 +3255,7 @@ function renderJourneyBar(c){
   if(src&&btn){btn.textContent=src.textContent;btn.disabled=!!src.disabled;btn.style.display=src.disabled?'none':''}
 }
 {const jb=$('journeyBarAction');if(jb)jb.addEventListener('click',()=>{const a=$('moneyJourneyAction');if(a&&!a.disabled)a.click()});}
+{const card=document.querySelector('.rb-next-step');if(card)card.addEventListener('click',function(e){if(e.target.closest('button'))return;const a=$('moneyJourneyAction');if(a&&!a.disabled)a.click();});}
 
 /* ───────────── Quick actions drawer (hamburger menu) ───────────── */
 (function(){
@@ -3317,16 +3320,36 @@ var slSheetData={
   bills:{title:'Bills',body:'<p>Your recurring bills live here. Add a bill once, with the amount and the day it is due, and Dexx holds back money from each paycheck so the bill is covered when it comes due.</p><p>Tap a bill to change its amount or due date, or to mark it paid.</p>',action:'OPEN BILLS',go:'profile'},
   income:{title:'Income',body:'<p>Your paycheck and any other money coming in. Dexx uses your paycheck date to build the plan for that cycle, and learns from the checks you confirm.</p><p>If your pay changes, update the amount here so the plan stays honest.</p>',action:'OPEN INCOME',go:'profile'},
   spending:{title:'Spending history',body:'<p>A record of money spent this paycheck cycle, in one place.</p><p>Expenses come off your safe-to-spend, not out of money already held back for bills, savings, or debt.</p>',action:'OPEN SPENDING',go:'expense'},
+  dexx:{title:'Ask Dexx',body:'<p>You may submit questions in your own words — for example, “Can I afford new tires?” — and Dexx will respond using your account information. If Dexx prepares an entry on your behalf, the details are presented for your review and approval before anything is saved.</p>',action:'ASK DEXX',go:'dexx'},
   scan:{title:'Scan a bill document',body:'<p>Take a photo of a bill, statement, or receipt and Dexx reads it for you.</p><p>Dexx shows what it found before anything is saved, so you can check the numbers first.</p>',action:'OPEN CAMERA',fn:function(){var el=$("dexxPhotoInput");if(el)el.click();}},
-  account:{title:'Account and backup',body:'<p>Your cloud account keeps your Lab on this device and lets it move to a new phone.</p><p>Your plan and your numbers stay on your device. The cloud account only stores the sign-in and the backup.</p>',action:'OPEN ACCOUNT',fn:function(){var el=$('cloudCard');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});}},
-  restore:{title:'Restore data',body:'<p>If your data is ever missing, or you move to a new phone, you can bring your Lab back from a backup or from the cloud.</p><p>Restoring replaces what is on this device with the backup, so check the backup date first.</p>',action:'OPEN RESTORE',fn:function(){var el=document.querySelector('.memory-guard-card');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});}},
-  how:{title:'How it works',body:'<p>One paycheck, one plan.</p><ul><li><strong>Enter your paycheck.</strong> Amount and payday.</li><li><strong>Add your bills.</strong> Dexx holds back what each bill needs.</li><li><strong>Approve the plan.</strong> Check the numbers, then approve.</li><li><strong>Spend only your safe-to-spend.</strong> Everything else is already spoken for.</li></ul><p>Your next paycheck starts a new cycle. The plan, the checklist, and the money held back all follow the same steps.</p>',action:'SEE THE STEPS',go:'start'}
+  reminders:{title:'Reminders',body:'<p>Notifications are provided two days before a bill is due, on the morning of payday, and once if a weekly check-in is missed. No more than one notification is sent per day, and amounts are never displayed on the lock screen.</p><p>Turn alerts on below. They work best once you sign in to a cloud account.</p>',action:'DONE',nodes:['notifySettings']},
+  business:{title:'Business Lab',body:'<p>Business Lab provides the same planning structure for business finances: client income, tax amounts reserved from each payment received, business expenses, and invoice tracking. Business and personal finances remain separate.</p><p>Switch modes below. Business Lab turns the whole app blue and keeps business money apart from personal money.</p>',action:'DONE',nodes:['slModeCard']},
+  account:{title:'Account and backup',body:'<p>Your cloud account keeps your Lab on this device and lets it move to a new phone.</p><p>Your plan and your numbers stay on your device. The cloud account only stores the sign-in and the backup.</p><p>Back up this device to a file below, or restore from one, so your Lab survives a lost or replaced phone.</p>',action:'DONE',nodes:['cloudCard','slBackupRestore']},
+  appearance:{title:'Appearance',body:'<p>Choose how the app looks. Light and Dark set it here; System follows your phone setting.</p><p>Your choice is saved on this device.</p>',action:'DONE',nodes:['slAppearanceCard']},
+  restore:{title:'Restore data',body:'<p>If your data is ever missing, or you move to a new phone, you can bring your Lab back from a backup or from the cloud.</p><p>To restore from a JSON backup file or the cloud, use Account and backup. Here you can undo the last change or restore a previous safe state saved on this device.</p>',action:'DONE',nodes:['slSafetyCard']},
+  how:{title:'How it works',body:'<p>One paycheck, one plan.</p><ul><li><strong>Enter your paycheck.</strong> Amount and payday.</li><li><strong>Add your bills.</strong> Dexx holds back what each bill needs.</li><li><strong>Approve the plan.</strong> Check the numbers, then approve.</li><li><strong>Spend only your safe-to-spend.</strong> Everything else is already spoken for.</li></ul><p>Your next paycheck starts a new cycle. The plan, the checklist, and the money held back all follow the same steps.</p>',action:'DONE',nodes:['slMemoryGuardCard','slDebtStatusCard']},
+  checklist:{title:"Today's checklist",body:'<p>Four small habits that keep the plan alive: stay under your spending goal, save a little, review upcoming bills, and complete the payday plan.</p><p>Tick them off as you go. Dexx counts them toward your weekly progress.</p>',action:'DONE',nodes:['slChecklistCard']},
+  labdetails:{title:'Lab details',body:'<p>Your Lab at a glance: the stats, the plan briefing, your health score, and the timeline.</p><p>Nothing here changes your money — it is a summary of where the plan stands.</p>',action:'DONE',nodes:['slLabDetails']}
 };
+var slSheetOpenNodes=[];
+function slSheetParkNodes(){
+  var park=$('slSheetParking');if(!park)return;
+  slSheetOpenNodes.forEach(function(n){if(n&&n.parentNode!==park)park.appendChild(n);});
+  slSheetOpenNodes=[];
+}
 function openSlSheet(topic){
   var t=slSheetData[topic];if(!t)return;
   var sheet=$('slSheet');if(!sheet)return;
+  slSheetParkNodes();
   $('slSheetTitle').textContent=t.title;
-  $('slSheetBody').innerHTML=t.body;
+  var body=$('slSheetBody');
+  body.innerHTML=t.body||'';
+  slSheetOpenNodes=[];
+  (t.nodes||[]).forEach(function(id){
+    var n=$(id);if(!n)return;
+    if(n.tagName==='DETAILS')n.open=true;
+    body.appendChild(n);slSheetOpenNodes.push(n);
+  });
   var act=$('slSheetAction');
   act.textContent=t.action;
   act.onclick=function(){
@@ -3336,10 +3359,11 @@ function openSlSheet(topic){
   };
   sheet.hidden=false;
 }
-function closeSlSheet(){var s=$('slSheet');if(s)s.hidden=true;}
+function closeSlSheet(){slSheetParkNodes();var s=$('slSheet');if(s)s.hidden=true;}
 function openSlDaySheet(key){
   var info=slHomeDayMap[key];if(!info)return;
   var sheet=$('slSheet');if(!sheet)return;
+  slSheetParkNodes();
   $('slSheetTitle').textContent=dateText(key,{weekday:'long',month:'long',day:'numeric'});
   var rows='';
   if(info.payday){
@@ -3360,6 +3384,8 @@ function openSlDaySheet(key){
 document.addEventListener('click',function(e){
   var row=e.target.closest?e.target.closest('[data-sl-topic]'):null;
   if(row){openSlSheet(row.getAttribute('data-sl-topic'));return;}
+  var ap=e.target.closest?e.target.closest('[data-appearance]'):null;
+  if(ap){setAppearance(ap.getAttribute('data-appearance'));return;}
   var day=e.target.closest?e.target.closest('[data-sl-day]'):null;
   if(day){openSlDaySheet(day.getAttribute('data-sl-day'));return;}
   if(e.target.closest&&e.target.closest('[data-sl-close]')){closeSlSheet();return;}
