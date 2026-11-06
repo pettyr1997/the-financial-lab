@@ -319,11 +319,11 @@ function currentCycleExpenseTotal(){return currentCycleExpenses().reduce((s,x)=>
 function expenseCategoryLabel(c){return ({gas:'Gas',groceries:'Groceries',food:'Food & dining',entertainment:'Entertainment',personal:'Personal',haircut:'Haircut',shopping:'Shopping',transportation:'Transportation',medical:'Medical',other:'Other'})[c]||'Other'}
 function spendingStatus(p){
   if(!p.paycheck)return 'Build a payday plan first so Dexx can calculate your spending allowance.';
-  if(p.overspent>0)return `You are ${money(p.overspent)} over this cycle’s TRUE Safe-to-Spend. Pause flexible spending until the next payday or rebuild the plan if your situation changed.`;
+  if(p.overspent>0)return `You are ${money(p.overspent)} over this cycle’s safe-to-spend. Pause flexible spending until the next payday or rebuild the plan if your situation changed.`;
   const used=p.safeBeforeExpenses>0?p.expenseTotal/p.safeBeforeExpenses:0;
   if(used>=.8)return `You have used ${Math.round(used*100)}% of your flexible spending allowance. ${money(p.safeToSpend)} remains until payday.`;
   if(p.expenseTotal>0)return `You have spent ${money(p.expenseTotal)} from this cycle’s flexible money. ${money(p.safeToSpend)} remains until payday.`;
-  return `No flexible expenses recorded yet. Your current TRUE Safe-to-Spend is ${money(p.safeToSpend)}.`;
+  return `No flexible expenses recorded yet. Your current safe-to-spend is ${money(p.safeToSpend)}.`;
 }
 function resetExpenseForm(){if(!$('expenseForm'))return;$('expenseId').value='';$('expenseName').value='';$('expenseAmount').value='';$('expenseCategory').value='other';$('expenseDate').value=iso(new Date());$('expenseNote').value='';if($('expenseFundToggle'))$('expenseFundToggle').checked=false;$('saveExpense').textContent='SAVE EXPENSE';$('cancelExpenseEdit').hidden=true}
 
@@ -339,7 +339,7 @@ function reportObservationText(c){
   if(!c.paycheck)return 'Build a payday plan to unlock your report.';
   const protectedTotal=(c.payNow||0)+(c.reserve||0)+(c.savings||0)+(c.debtPayment||0);
   const used=c.safeBeforeExpenses>0?c.expenseTotal/c.safeBeforeExpenses:0;
-  if(c.overspent>0)return `You are ${money(c.overspent)} over this cycle’s TRUE Safe-to-Spend. Protected money remains separated, but Dexx recommends pausing flexible spending until the next payday.`;
+  if(c.overspent>0)return `You are ${money(c.overspent)} over this cycle’s safe-to-spend. Protected money remains separated, but Dexx recommends pausing flexible spending until the next payday.`;
   if(c.shortfall>0)return `This paycheck is under pressure. ${money(c.shortfall)} of immediate bills is still unfunded. Protect essentials before adding more flexible spending.`;
   if(used>=.8)return `You protected ${money(protectedTotal)} and have used ${Math.round(used*100)}% of this cycle’s flexible spending allowance. ${money(c.safeToSpend)} remains.`;
   if(c.expenseTotal>0)return `You protected ${money(protectedTotal)}, recorded ${money(c.expenseTotal)} in spending, and still have ${money(c.safeToSpend)} truly safe to spend.`;
@@ -745,7 +745,7 @@ function calculateHealthScore(c){
     const allowance=Number(c.safeBeforeExpenses)||0;
     if(c.overspent>0){
       spending=clampScore(8-(c.overspent/Math.max(c.paycheck,1))*20);
-      spendingWhy=`Over TRUE Safe-to-Spend by ${money(c.overspent)}`;
+      spendingWhy=`Over safe-to-spend by ${money(c.overspent)}`;
     }else if(allowance>0){
       const used=(c.expenseTotal||0)/allowance;
       if(used<=.50){spending=20;spendingWhy=`Only ${Math.round(used*100)}% of flexible money used`;}
@@ -890,41 +890,41 @@ function buildDexxActions(c){
   if(!h.baselineComplete){
     const readiness=guidedSetupState();
     if(!readiness.areas.bills){
-      actions.push(actionItem('bills-setup',110,'Add your recurring bills','TRUE Safe-to-Spend and forecasts are more reliable when Dexx knows the bills and due dates that must be protected.','ADD RECURRING BILLS','profile'));
+      actions.push(actionItem('bills-setup',110,'Add your recurring bills','safe-to-spend and forecasts are more reliable when Dexx knows the bills and due dates that must be protected.','ADD RECURRING BILLS','profile'));
     }
     if(!readiness.areas.debt){
-      actions.push(actionItem('debt-status',100,'Confirm your debt status','Add your debt accounts in Credit Lab, or confirm that you currently have no debt to track.','CHECK DEBT STATUS','more'));
+      actions.push(actionItem('debt-status',100,'Confirm your debt status','Add your debt accounts under Debt, or confirm that you currently have no debt to track.','CHECK DEBT STATUS','more'));
     }
     if(Number(c.paycheck)<=0){
-      actions.push(actionItem('payday-plan',95,'Build your payday plan','Enter your paycheck, pay date, and next payday so Dexx can calculate what is truly safe to spend.','OPEN BUDGET LAB','budget'));
+      actions.push(actionItem('payday-plan',95,'Build your payday plan','Enter your paycheck, pay date, and next payday so Dexx can calculate what is truly safe to spend.','OPEN PAYDAY','budget'));
     }
     if(!readiness.areas.savings){
-      actions.push(actionItem('savings-setup',85,'Complete your savings setup',goals.length?'Your savings goals exist, but this paycheck has no savings contribution yet.':'Add current savings or a savings goal so Dexx can connect planned saving to real progress.','OPEN SAVINGS LAB','savings'));
+      actions.push(actionItem('savings-setup',85,'Complete your savings setup',goals.length?'Your savings goals exist, but this paycheck has no savings contribution yet.':'Add current savings or a savings goal so Dexx can connect planned saving to real progress.','OPEN SAVINGS','savings'));
     }
     if(history.length===0){
-      actions.push(actionItem('approve-first',80,'Approve your first payday plan','Approved plans are what create reliable Financial Lab history and future trend comparisons.','OPEN BUDGET LAB','budget'));
+      actions.push(actionItem('approve-first',80,'Approve your first payday plan','Approved plans are what create reliable Financial Lab history and future trend comparisons.','OPEN PAYDAY','budget'));
     }
   }else{
     if(c.shortfall>0){
       actions.push(actionItem('shortfall',120,'Cover the immediate shortfall',`${money(c.shortfall)} of required money still needs funding before discretionary spending.`, 'REVIEW PAYDAY PLAN','budget'));
     }
     if(c.overspent>0){
-      actions.push(actionItem('overspent',115,'Pause flexible spending',`You are ${money(c.overspent)} over TRUE Safe-to-Spend for this cycle.`, 'OPEN SPENDING LAB','spending'));
+      actions.push(actionItem('overspent',115,'Pause flexible spending',`You are ${money(c.overspent)} over safe-to-spend for this cycle.`, 'OPEN SPENDING','spending'));
     }
     if(h.protection<16){
       actions.push(actionItem('protection',100,'Strengthen bill protection',h.protectionWhy,'REVIEW BILLS','budget'));
     }
     if(h.spending<15){
-      actions.push(actionItem('spending',95,'Reduce flexible spending',h.spendingWhy,'OPEN SPENDING LAB','spending'));
+      actions.push(actionItem('spending',95,'Reduce flexible spending',h.spendingWhy,'OPEN SPENDING','spending'));
     }
     if(h.savings<14){
-      actions.push(actionItem('savings',90,'Increase savings progress',h.savingsWhy,'OPEN SAVINGS LAB','savings'));
+      actions.push(actionItem('savings',90,'Increase savings progress',h.savingsWhy,'OPEN SAVINGS','savings'));
     }
     if(h.debt<14){
-      actions.push(actionItem('debt',88,'Improve debt progress',h.debtWhy,'OPEN CREDIT LAB','credit'));
+      actions.push(actionItem('debt',88,'Improve debt progress',h.debtWhy,'OPEN DEBT','credit'));
     }
     if(h.consistency<15){
-      actions.push(actionItem('consistency',75,'Build a stronger money routine',h.consistencyWhy,'OPEN BUDGET LAB','budget'));
+      actions.push(actionItem('consistency',75,'Build a stronger money routine',h.consistencyWhy,'OPEN PAYDAY','budget'));
     }
 
     const latest=history[history.length-1];
@@ -935,13 +935,13 @@ function buildDexxActions(c){
       if(spentChange>0){
         actions.push(actionItem('trend-spending',70,'Reverse the spending trend',`Spending increased ${money(spentChange)} versus the previous approved paycheck.`,'VIEW REPORTS','reports'));
       }else if(safeChange>0){
-        actions.push(actionItem('trend-win',40,'Keep the stronger pattern',`TRUE Safe-to-Spend finished ${money(safeChange)} higher than the prior approved paycheck.`,'VIEW REPORTS','reports'));
+        actions.push(actionItem('trend-win',40,'Keep the stronger pattern',`Safe-to-spend finished ${money(safeChange)} higher than the prior approved paycheck.`,'VIEW REPORTS','reports'));
       }
     }
   }
 
   if(!actions.length){
-    actions.push(actionItem('maintain',30,'Stay on the current plan','Your current setup has no urgent weak area. Keep tracking expenses and approving each payday plan.','OPEN BUDGET LAB','budget'));
+    actions.push(actionItem('maintain',30,'Stay on the current plan','Your current setup has no urgent weak area. Keep tracking expenses and approving each payday plan.','OPEN PAYDAY','budget'));
   }
 
   return actions.sort((a,b)=>b.priority-a.priority).slice(0,4);
@@ -1461,7 +1461,7 @@ function moneyDatesBridgeState(c){
   }else if(plan&&journey.preview){
     status='Review now';gate='Review reconciliation';gateNote='Actual deposit entered. Review the recalculated plan.';
     impactTitle='Actual paycheck is entered';
-    impactText='Review the variance, protection, and TRUE Safe-to-Spend before activating the paycheck cycle.';
+    impactText='Review the variance, protection, and safe-to-spend before activating the paycheck cycle.';
   }else if(plan&&journey.liveRunway){
     status='Live cycle';gate=`Runway through ${dateText(nextPay,{month:'short',day:'numeric'})}`;gateNote='Protection is funded and the spending runway is active.';
     impactTitle='Your live runway is connected to the calendar';
@@ -1469,7 +1469,7 @@ function moneyDatesBridgeState(c){
   }else if(plan&&journey.cycleEnded){
     status='Next cycle';gate='Start next paycheck';gateNote='This cycle reached its next-payday boundary.';
     impactTitle='This cycle is ready to roll forward';
-    impactText='Review the finished cycle, then start the next paycheck so the calendar and Money Journey can advance together.';
+    impactText='Review the finished cycle, then start the next paycheck so the calendar and your plan can advance together.';
   }
 
   if(reserveDetails.length){
@@ -1640,7 +1640,7 @@ function renderExpenseManager(c){
   if(!list.length){host.innerHTML='<div class="empty-copy">No expenses recorded for this paycheck cycle yet.</div>';return}
   list.forEach(x=>{
     const row=document.createElement('article');row.className='expense-row';
-    row.innerHTML=`<div class="expense-row-main"><div><strong>${escapeHTML(x.name)}</strong><span>${expenseCategoryLabel(x.category)} · ${dateText(x.date,{month:'short',day:'numeric'})}${x.source==='unexpected'?' · Unexpected fund':''}${x.note?` · ${escapeHTML(x.note)}`:''}</span></div><b>${money(x.amount)}</b></div><div class="expense-row-actions"><button type="button" data-edit-expense="${x.id}">Edit</button><button type="button" class="danger-link" data-delete-expense="${x.id}">Delete</button></div>`;
+    row.innerHTML=`<div class="expense-row-main"><div><strong>${escapeHTML(x.name)}</strong><span>${expenseCategoryLabel(x.category)} · ${dateText(x.date,{month:'short',day:'numeric'})}${x.source==='unexpected'?' · Emergency fund':''}${x.note?` · ${escapeHTML(x.note)}`:''}</span></div><b>${money(x.amount)}</b></div><div class="expense-row-actions"><button type="button" data-edit-expense="${x.id}">Edit</button><button type="button" class="danger-link" data-delete-expense="${x.id}">Delete</button></div>`;
     host.append(row)
   })
 }
@@ -2160,7 +2160,7 @@ function executionTasks(plan,c){
   if(Number(plan.reserve)>0)tasks.push({id:'reserve',kind:'reserve',title:'Protect future bills',amount:Number(plan.reserve),note:'Reserve Memory locked this in when the plan was approved.',auto:true});
   if(Number(plan.savings)>0)tasks.push({id:'savings',kind:'savings',title:'Move money to savings',amount:Number(plan.savings),note:plan.savingsContributions?.[0]?.name?`Recorded toward ${plan.savingsContributions[0].name} when approved.`:'Recorded to savings when approved.',auto:true});
   if(Number(plan.debtPayment)>0)tasks.push({id:'debt',kind:'debt',title:`Send extra debt payment${plan.debtTarget?.name?` · ${plan.debtTarget.name}`:''}`,amount:Number(plan.debtPayment),note:'Confirm after you send the payment.',auto:false,action:'CONFIRM SENT'});
-  tasks.push({id:'spending-guard',kind:'spending',title:`Stay within ${money(c.safeToSpend)} TRUE Safe-to-Spend`,amount:null,note:`Track expenses through ${dateText(plan.nextPayday,{month:'short',day:'numeric'})}. This limit updates as new spending is recorded.`,auto:true,active:true});
+  tasks.push({id:'spending-guard',kind:'spending',title:`Stay within ${money(c.safeToSpend)} safe-to-spend`,amount:null,note:`Track expenses through ${dateText(plan.nextPayday,{month:'short',day:'numeric'})}. This limit updates as new spending is recorded.`,auto:true,active:true});
   return tasks;
 }
 function renderPaydayExecution(c){
@@ -2203,7 +2203,7 @@ function renderPaydayExecution(c){
     return;
   }
   if(progress)progress.textContent=counted?`${done} of ${counted} moves done`:'Execution ready';
-  if(status)status.textContent=counted&&done===counted?`Payday moves complete. Keep tracking spending — ${money(c.safeToSpend)} is currently safe through ${dateText(plan.nextPayday,{month:'short',day:'numeric'})}.`:`${counted-done} payday move${counted-done===1?'':'s'} still need confirmation. Protected money stays separated from TRUE Safe-to-Spend.`;
+  if(status)status.textContent=counted&&done===counted?`Payday moves complete. Keep tracking spending — ${money(c.safeToSpend)} is currently safe through ${dateText(plan.nextPayday,{month:'short',day:'numeric'})}.`:`${counted-done} payday move${counted-done===1?'':'s'} still need confirmation. Protected money stays separated from safe-to-spend.`;
 }
 function weeklyRunwayState(c,now=new Date()){
   const plan=data.approvedPlan;
@@ -2275,7 +2275,7 @@ function weeklyRunwayState(c,now=new Date()){
     actionText=`You are ${money(Math.abs(paceGap))} over today’s calendar pace. Pause flexible spending to let the calendar catch up.`;
   }else if(!beforeCycle){
     actionAmount=money(actionRoom);
-    actionText=`You can use up to ${money(actionRoom)} more before reaching today’s calendar pace. This is a pace guide, not extra money beyond your ${money(safe)} TRUE Safe-to-Spend.`;
+    actionText=`You can use up to ${money(actionRoom)} more before reaching today’s calendar pace. This is a pace guide, not extra money beyond your ${money(safe)} safe-to-spend.`;
   }
   return {payDate,nextPay,today,cycleDays,beforeCycle,afterCycle,daysLeft,startingSafe,spent,safe,daily,usedRatio,elapsedDays,expectedUsedRatio,expectedSpent,paceGap,status,tone,coachMessage,pacePct,actionRoom,actionAmount,actionText};
 }
@@ -2296,7 +2296,7 @@ function renderWeeklyRunway(c){
     if($('runwayActionAmount'))$('runwayActionAmount').textContent=beforePayday?'Wait for payday':'Confirm paycheck';
     if($('runwayActionText'))$('runwayActionText').textContent=beforePayday?`On ${dateText(payDate,{month:'short',day:'numeric'})}, enter what actually reached your account.`:'Enter the real deposit, review Dexx’s recalculation, and activate the reconciled payday before spending guidance begins.';
     if($('runwayActionGuide'))$('runwayActionGuide').dataset.tone='watch';
-    $('runwayReadout').textContent=`${money(Number(plan.safeToSpend)||0)} is still PLANNED TRUE Safe-to-Spend. It is not available until the actual paycheck is confirmed and protection is funded.`;
+    $('runwayReadout').textContent=`${money(Number(plan.safeToSpend)||0)} is still planned safe-to-spend. It is not available until the actual paycheck is confirmed and protection is funded.`;
     return;
   }
   panel.classList.remove('runway-locked');
@@ -2328,7 +2328,7 @@ function renderWeeklyRunway(c){
     $('runwayDaysNote').textContent=`Cycle starts ${dateText(r.payDate,{month:'short',day:'numeric'})}`;
     $('runwayDailyNote').textContent=`Across ${r.cycleDays} cycle days`;
     $('runwayPaceNote').textContent='Spending pace begins on check date';
-    $('runwayReadout').textContent=`Your approved cycle starts in ${until} day${until===1?'':'s'}. ${money(r.safe)} is protected as TRUE Safe-to-Spend for the ${r.cycleDays}-day runway to ${dateText(r.nextPay,{month:'short',day:'numeric'})}.`;
+    $('runwayReadout').textContent=`Your approved cycle starts in ${until} day${until===1?'':'s'}. ${money(r.safe)} is protected as safe-to-spend for the ${r.cycleDays}-day runway to ${dateText(r.nextPay,{month:'short',day:'numeric'})}.`;
   }else if(r.afterCycle){
     $('runwayDaysNote').textContent='Next payday reached';
     $('runwayDailyNote').textContent='Start the next paycheck cycle';
@@ -2369,23 +2369,23 @@ function renderPaydayCommandCenter(c){
   const status=!p.paycheck?'Waiting for check':p.shortfall?'Needs attention':plannedFunding?'Plan scheduled':data.approvedPlan?'Execution mode':'Plan ready';
   $('commandCenterStatus').textContent=status;
   $('commandCenterStatus').dataset.state=p.shortfall?'watch':data.approvedPlan?'approved':p.paycheck?'ready':'waiting';
-  if($('commandPaycheckLabel'))$('commandPaycheckLabel').textContent=plannedFunding?'PLANNED PAYCHECK':'PAYCHECK';if($('commandProtectedLabel'))$('commandProtectedLabel').textContent=plannedFunding?'PLANNED PROTECTED':'PROTECTED';if($('commandSafeLabel'))$('commandSafeLabel').textContent=plannedFunding?'PLANNED TRUE SAFE-TO-SPEND':'TRUE SAFE-TO-SPEND';
+  if($('commandPaycheckLabel'))$('commandPaycheckLabel').textContent=plannedFunding?'PLANNED PAYCHECK':'PAYCHECK';if($('commandProtectedLabel'))$('commandProtectedLabel').textContent=plannedFunding?'PLANNED PROTECTED':'PROTECTED';if($('commandSafeLabel'))$('commandSafeLabel').textContent=plannedFunding?'PLANNED SAFE-TO-SPEND':'SAFE-TO-SPEND';
   const action=$('commandPlanAction');
   if(action)action.textContent=!p.paycheck?'ENTER CHECK':data.approvedPlan?'PAYDAY CHECKLIST':'REVIEW / APPROVE PLAN';
   const readout=!p.paycheck
     ?`Next scheduled check: ${dateText(suggestedNextPayCycle().payDate,{weekday:'short',month:'short',day:'numeric'})}. Enter the amount and Dexx will connect bills, reserves, savings, debt, and spending.`
     :p.shortfall>0
-      ?`This check is ${money(p.shortfall)} short on immediate priorities. Protect required bills first; TRUE Safe-to-Spend stays at ${money(p.safeToSpend)}.`
+      ?`This check is ${money(p.shortfall)} short on immediate priorities. Protect required bills first; safe-to-spend stays at ${money(p.safeToSpend)}.`
       :plannedFunding
-        ?`${money(protectedTotal)} is planned to be protected when the ${money(p.paycheck)} paycheck lands. Nothing from this future check is counted as funded today; ${money(p.safeToSpend)} is the planned TRUE Safe-to-Spend for the upcoming cycle.`
+        ?`${money(protectedTotal)} is planned to be protected when the ${money(p.paycheck)} paycheck lands. Nothing from this future check is counted as funded today; ${money(p.safeToSpend)} is the planned safe-to-spend for the upcoming cycle.`
         :data.approvedPlan
-          ?`Execution mode is active. ${money(protectedTotal)} stays assigned to the approved plan and ${money(p.safeToSpend)} is your current TRUE Safe-to-Spend after ${money(p.expenseTotal)} recorded spending.`
+          ?`Execution mode is active. ${money(protectedTotal)} stays assigned to the approved plan and ${money(p.safeToSpend)} is your current safe-to-spend after ${money(p.expenseTotal)} recorded spending.`
           :`Plan ready. ${money(p.payNow)} goes to bills now, ${money(p.reserve)} protects future bills, ${money(p.savings)} goes to savings, and ${money(p.safeToSpend)} remains truly safe to spend.`;
   $('commandDexxReadout').textContent=readout;
   renderWeeklyRunway(p);
   renderPaydayExecution(p);
 }
-function allocationRows(p){const host=$('allocationList');if(!host)return;host.replaceChildren();const rows=[['Bills due before next payday',p.payNow,p.shortfall?`${money(p.shortfall)} still unfunded`:`${p.dueNowBills.length} covered`],['Bills reserve — this check',p.reserve,p.reserveShortfall?`${money(p.reserveShortfall)} still needed`:`${p.upcomingBills.length} future bill${p.upcomingBills.length===1?'':'s'} protected`],['Move to savings',p.savings,`Target: ${money(p.desiredSavings)}${p.savingsGoalTarget?` · ${p.savingsGoalTarget.name}`:''}`],['Extra debt payment',p.debtPayment,p.desiredDebt?`Goal: ${money(p.desiredDebt)}${p.targetDebt?` · Target ${p.targetDebt.name}`:''}`:'Optional after priorities'],['Spent this cycle',p.expenseTotal,`${p.currentExpenses.length} expense${p.currentExpenses.length===1?'':'s'} recorded`],['TRUE safe to spend',p.safeToSpend,`Through ${dateText(p.nextPay,{month:'short',day:'numeric'})}`]];if(p.setAside>0)rows.splice(4,0,['Unexpected fund',p.setAside,p.fundRemaining>0?`${money(p.fundRemaining)} left to use`:'Fund fully used']);rows.forEach(([label,amount,note])=>{const row=document.createElement('div');row.className='allocation-row';row.innerHTML=`<div><strong>${label}</strong><small>${note}</small></div><b>${money(amount)}</b>`;host.append(row)})}
+function allocationRows(p){const host=$('allocationList');if(!host)return;host.replaceChildren();const rows=[['Bills due before next payday',p.payNow,p.shortfall?`${money(p.shortfall)} still unfunded`:`${p.dueNowBills.length} covered`],['Held back for upcoming bills',p.reserve,p.reserveShortfall?`${money(p.reserveShortfall)} still needed`:`${p.upcomingBills.length} future bill${p.upcomingBills.length===1?'':'s'} protected`],['Savings',p.savings,`Target: ${money(p.desiredSavings)}${p.savingsGoalTarget?` · ${p.savingsGoalTarget.name}`:''}`],['Extra debt payment',p.debtPayment,p.desiredDebt?`Goal: ${money(p.desiredDebt)}${p.targetDebt?` · Target ${p.targetDebt.name}`:''}`:'Optional after priorities'],['Spent this cycle',p.expenseTotal,`${p.currentExpenses.length} expense${p.currentExpenses.length===1?'':'s'} recorded`],['Safe to spend',p.safeToSpend,`Through ${dateText(p.nextPay,{month:'short',day:'numeric'})}`]];if(p.setAside>0)rows.splice(4,0,['Emergency fund',p.setAside,p.fundRemaining>0?`${money(p.fundRemaining)} left to use`:'Fund fully used']);rows.forEach(([label,amount,note])=>{const row=document.createElement('div');row.className='allocation-row';row.innerHTML=`<div><strong>${label}</strong><small>${note}</small></div><b>${money(amount)}</b>`;host.append(row)})}
 /* ============ Phase 3 — Intelligent Payday Plan (v4.1.21.0) ============
    billCoverageDetails answers "which exact bills does this check cover?" in
    priority order, and names what stays short — shortfalls are never hidden.
@@ -2448,10 +2448,10 @@ function recommendation(p){
   if(p.shortfall>0){const essentials=p.dueNowBills.filter(b=>b.priority==='essential').map(b=>b.name).slice(0,3).join(', ');return`This payday is ${money(p.shortfall)} short before future reserves. Protect ${essentials||'housing, utilities, transportation, and insurance'} first. Pause savings and extra debt payments if needed, reduce flexible spending to $0.00, and contact lower-priority billers before the due date.`}
   const why=reserveExplanation(p);
   if(p.reserveShortfall>0)return`Your immediate bills are covered, but this check cannot fully fund the ${money(p.reserveTarget)} future-bill reserve I recommend. Protect ${money(p.reserve)} now and keep flexible spending at ${money(p.safeToSpend)}. ${why} Savings and extra debt should stay behind this reserve until the gap is covered.`;
-  if(p.upcomingBills.length)return`Your immediate bills are covered. I recommend protecting ${money(p.reserve)} from this check for future bills before treating the rest as available. ${why} Then move ${money(p.savings)} to ${p.savingsGoalTarget?.name||'savings'}${p.debtPayment?`, send ${money(p.debtPayment)} to ${p.targetDebt?.name||'debt'}`:''}. You have already recorded ${money(p.expenseTotal)} in flexible expenses this cycle. Your TRUE safe-to-spend amount is ${money(p.safeToSpend)}.`;
+  if(p.upcomingBills.length)return`Your immediate bills are covered. I recommend protecting ${money(p.reserve)} from this check for future bills before treating the rest as available. ${why} Then move ${money(p.savings)} to ${p.savingsGoalTarget?.name||'savings'}${p.debtPayment?`, send ${money(p.debtPayment)} to ${p.targetDebt?.name||'debt'}`:''}. You have already recorded ${money(p.expenseTotal)} in flexible expenses this cycle. Your safe-to-spend amount is ${money(p.safeToSpend)}.`;
   return`Pay ${money(p.payNow)} now. No future-bill reserve is needed inside your current look-ahead window, so move ${money(p.savings)} to ${p.savingsGoalTarget?.name||'savings'}${p.debtPayment?`, send ${money(p.debtPayment)} to ${p.targetDebt?.name||'debt'}`:''}, and keep flexible spending at or below ${money(p.safeToSpend)} until payday.`
 }
-function experiment(p){if(!p.paycheck)return{title:'Build your first payday plan',text:'Add a paycheck and approve Dexx’s recommendation.',progress:0};if(!data.approvedPlan)return{title:'Approve the experiment',text:`Review the plan and protect ${money(p.savings)} for savings.`,progress:35};const target=Math.max(20,Math.min(p.safeToSpend*.2,75));return{title:`No-spend boost: save an extra ${money(target)}`,text:`Stay under ${money(p.safeToSpend)} in flexible spending and review your bills by Wednesday.`,progress:data.missions.spending&&data.missions.bills?100:data.missions.spending||data.missions.bills?70:50}}
+function experiment(p){if(!p.paycheck)return{title:'Build your first payday plan',text:'Add a paycheck and approve Dexx’s recommendation.',progress:0};if(!data.approvedPlan)return{title:'Approve the plan',text:`Review the plan and protect ${money(p.savings)} for savings.`,progress:35};const target=Math.max(20,Math.min(p.safeToSpend*.2,75));return{title:`No-spend boost: save an extra ${money(target)}`,text:`Stay under ${money(p.safeToSpend)} in flexible spending and review your bills by Wednesday.`,progress:data.missions.spending&&data.missions.bills?100:data.missions.spending||data.missions.bills?70:50}}
 
 
 function labReadinessIntelligence(){
@@ -2463,7 +2463,7 @@ function labReadinessIntelligence(){
   const next=missing[0]||(!areas.spending?'spending':'');
   let accuracy='Strong';
   let accuracyText='Your core money setup is complete.';
-  if(!areas.bills){accuracy='Limited';accuracyText='Bills are missing, so TRUE Safe-to-Spend and forecasts should be treated as estimates.';}
+  if(!areas.bills){accuracy='Limited';accuracyText='Bills are missing, so safe-to-spend and forecasts should be treated as estimates.';}
   else if(!areas.debt){accuracy='Partial';accuracyText='Debt is not confirmed, so minimum payments may be missing from your financial picture.';}
   else if(!areas.savings){accuracy='Partial';accuracyText='Savings setup is incomplete, so Dexx cannot fully connect your goals to the plan.';}
   return {...state,missing,labels,next,accuracy,accuracyText,skipped};
@@ -2499,12 +2499,12 @@ function moneyJourneyState(c){
 
   let reconcileState='locked',reconcileBadge='LOCKED',reconcileNote='Unlocks after the actual paycheck amount is entered.';
   if(funded){reconcileState='done';reconcileBadge='COMPLETE';reconcileNote=`Actual vs. planned paycheck was reconciled before funding${Number(plan?.paycheckVariance||0)?` · ${Number(plan.paycheckVariance)>0?'+':''}${money(Number(plan.paycheckVariance))} variance`:''}.`}
-  else if(preview){reconcileState='current';reconcileBadge='CURRENT';reconcileNote='Review Dexx’s recalculated protection and TRUE Safe-to-Spend before activation.'}
-  add('reconcile','Reconcile actual check',reconcileNote,reconcileState,reconcileBadge);
+  else if(preview){reconcileState='current';reconcileBadge='CURRENT';reconcileNote='Review Dexx’s recalculated protection and safe-to-spend before activation.'}
+  add('reconcile','Confirm what actually landed',reconcileNote,reconcileState,reconcileBadge);
 
   add('protect','Protect the money',funded?`${money(protectedTotal)} in approved protection is now funded.`:'Reserve, savings, bills, and debt moves stay scheduled until reconciliation is approved.',funded?'done':'locked',funded?'COMPLETE':'LOCKED');
-  add('runway','Live TRUE Safe-to-Spend runway',cycleEnded?'This paycheck runway is complete.':liveRunway?`${money(c.safeToSpend)} remains safe through ${nextPay?dateText(nextPay,{month:'short',day:'numeric'}):'next payday'}.`:'Unlocks only after the real paycheck is reconciled and protection is funded.',cycleEnded?'done':liveRunway?'current':'locked',cycleEnded?'COMPLETE':liveRunway?'ACTIVE':'LOCKED');
-  add('next','Next paycheck cycle',cycleEnded?'Review the finished cycle and build the next paycheck plan.':nextPay?`Upcoming ${dateText(nextPay,{month:'short',day:'numeric'})}. The next cycle stays blocked until this one reaches payday.`:'Dexx will schedule the next cycle after payday dates are known.',cycleEnded?'current':'locked',cycleEnded?'CURRENT':nextPay?dateText(nextPay,{month:'short',day:'numeric'}).toUpperCase():'LOCKED');
+  add('runway','Safe-to-spend goes live',cycleEnded?'This paycheck runway is complete.':liveRunway?`${money(c.safeToSpend)} remains safe through ${nextPay?dateText(nextPay,{month:'short',day:'numeric'}):'next payday'}.`:'Unlocks only after the real paycheck is reconciled and protection is funded.',cycleEnded?'done':liveRunway?'current':'locked',cycleEnded?'COMPLETE':liveRunway?'ACTIVE':'LOCKED');
+  add('next','Next payday cycle',cycleEnded?'Review the finished cycle and build the next paycheck plan.':nextPay?`Upcoming ${dateText(nextPay,{month:'short',day:'numeric'})}. The next cycle stays blocked until this one reaches payday.`:'Dexx will schedule the next cycle after payday dates are known.',cycleEnded?'current':'locked',cycleEnded?'CURRENT':nextPay?dateText(nextPay,{month:'short',day:'numeric'}).toUpperCase():'LOCKED');
 
   const current=steps.find(x=>x.state==='current')||steps.find(x=>x.state==='locked')||steps[steps.length-1];
   return {steps,current,plan,payDate,nextPay,funded,beforePayday,paydayReady,preview,cycleEnded,liveRunway,readiness};
@@ -2530,7 +2530,7 @@ function renderMoneyJourney(c){
   else if(j.beforePayday){action.textContent=`PAYCHECK LANDS ${dateText(j.payDate,{month:'short',day:'numeric'}).toUpperCase()}`;action.disabled=true}
   else if(!j.funded){action.textContent=j.preview?'REVIEW RECONCILIATION':'CONFIRM ACTUAL PAYCHECK';action.dataset.go='budget';action.dataset.journeyScroll='execution'}
   else if(j.cycleEnded){action.textContent='START NEXT PAYCHECK';action.dataset.go='budget';action.dataset.journeyScroll='next'}
-  else{action.textContent='OPEN LIVE PAYDAY MODE';action.dataset.go='budget';action.dataset.journeyScroll='execution'}
+  else{action.textContent='OPEN PAYDAY';action.dataset.go='budget';action.dataset.journeyScroll='execution'}
 }
 
 function renderLabReadinessIntelligence(){
@@ -2560,16 +2560,16 @@ function renderLabBriefing(c){
   set('labProtectedMoney',money(protectedTotal));set('labProtectedLabel',plan&&!funded?'PLANNED PROTECTED':'PROTECTED');set('labCheckMoney',money(paycheck));set('labCheckNote',paycheck&&payDate?`${funded?'Confirmed':'Planned'} ${dateText(payDate,{month:'short',day:'numeric'})}`:'No check planned');
   if(beforeCycle){
     set('labBriefingStatus','Upcoming payday');set('labBriefingTitle',`${money(paycheck)} payday plan ready for ${dateText(payDate,{month:'short',day:'numeric'})}.`);set('labBriefingCopy','Planned money is not money available today. Payday will unlock check-in, not automatically create money.');
-    set('labTodayLabel','AVAILABLE TODAY');set('labTodayMoney',money(Math.max(0,Number(data.currentBalance)||0)));set('labTodayNote','Current available balance before payday');set('labCheckLabel','PLANNED CHECK');set('labSafeLabel','PLANNED SAFE');set('labSafeMoney',money(plannedSafe));set('labSafeNote',nextPay?`Planned for ${dateText(payDate,{month:'short',day:'numeric'})} → ${dateText(nextPay,{month:'short',day:'numeric'})}`:'Starts after confirmation');set('labNextMoveTitle','Wait for payday check-in');set('labNextMoveText',`${money(plannedSafe)} remains planned. Dexx will ask what actually landed before anything becomes live.`);
+    set('labTodayLabel','AVAILABLE TODAY');set('labTodayMoney',money(Math.max(0,Number(data.currentBalance)||0)));set('labTodayNote','Current available balance before payday');set('labCheckLabel','PLANNED CHECK');set('labSafeLabel','PLANNED SAFE TO SPEND');set('labSafeMoney',money(plannedSafe));set('labSafeNote',nextPay?`Planned for ${dateText(payDate,{month:'short',day:'numeric'})} → ${dateText(nextPay,{month:'short',day:'numeric'})}`:'Starts after confirmation');set('labNextMoveTitle','Wait for payday check-in');set('labNextMoveText',`${money(plannedSafe)} remains planned. Dexx will ask what actually landed before anything becomes live.`);
   }else if(paydayWaiting){
     set('labBriefingStatus','Payday check-in');set('labBriefingTitle','Payday is here — confirm what actually landed.');set('labBriefingCopy',`The ${money(paycheck)} plan is still planned money. Dexx will not assume the deposit arrived just because the date did.`);
-    set('labTodayLabel','AVAILABLE TODAY');set('labTodayMoney',money(Math.max(0,Number(data.currentBalance)||0)));set('labTodayNote','Confirmed money available before this paycheck');set('labCheckLabel','PLANNED CHECK');set('labSafeLabel','PLANNED SAFE');set('labSafeMoney',money(plannedSafe));set('labSafeNote','Locked until actual paycheck reconciliation');set('labNextMoveTitle','Confirm the actual paycheck');set('labNextMoveText','Open Payday Mode, enter the amount that actually reached your account, review the recalculated plan, then activate the live cycle.');
+    set('labTodayLabel','AVAILABLE TODAY');set('labTodayMoney',money(Math.max(0,Number(data.currentBalance)||0)));set('labTodayNote','Confirmed money available before this paycheck');set('labCheckLabel','PLANNED CHECK');set('labSafeLabel','PLANNED SAFE TO SPEND');set('labSafeMoney',money(plannedSafe));set('labSafeNote','Locked until actual paycheck reconciliation');set('labNextMoveTitle','Confirm the actual paycheck');set('labNextMoveText','Open Payday, enter the amount that actually reached your account, review the recalculated plan, then activate the live cycle.');
   }else if(liveCycle){
-    const r=weeklyRunwayState(c);set('labBriefingStatus','Live paycheck cycle');set('labBriefingTitle',`Your ${dateText(payDate,{month:'short',day:'numeric'})} payday is confirmed and live.`);set('labBriefingCopy','This view reflects the confirmed paycheck cycle, recorded spending, and money still safe to use.');set('labTodayLabel','TRUE SAFE TODAY');set('labTodayMoney',money(Math.max(0,Number(c.safeToSpend)||0)));set('labTodayNote',nextPay?`Safe through ${dateText(nextPay,{month:'short',day:'numeric'})}`:'Current cycle');set('labCheckLabel','CONFIRMED CHECK');set('labSafeLabel','SPENT THIS CYCLE');set('labSafeMoney',money(Math.max(0,Number(c.expenseTotal)||0)));set('labSafeNote',r?`${r.status} · ${money(r.daily)}/day runway`:'Recorded flexible spending');set('labNextMoveTitle',r?.status==='Spending too fast'||r?.status==='Watch spending'?'Slow flexible spending':'Follow the live pace coach');set('labNextMoveText',r?.actionText||`Keep expenses inside the ${money(c.safeToSpend)} TRUE Safe-to-Spend amount until next payday.`);
+    const r=weeklyRunwayState(c);set('labBriefingStatus','Live paycheck cycle');set('labBriefingTitle',`Your ${dateText(payDate,{month:'short',day:'numeric'})} payday is confirmed and live.`);set('labBriefingCopy','This view reflects the confirmed paycheck cycle, recorded spending, and money still safe to use.');set('labTodayLabel','SAFE TO SPEND TODAY');set('labTodayMoney',money(Math.max(0,Number(c.safeToSpend)||0)));set('labTodayNote',nextPay?`Safe through ${dateText(nextPay,{month:'short',day:'numeric'})}`:'Current cycle');set('labCheckLabel','CONFIRMED CHECK');set('labSafeLabel','SPENT THIS CYCLE');set('labSafeMoney',money(Math.max(0,Number(c.expenseTotal)||0)));set('labSafeNote',r?`${r.status} · ${money(r.daily)}/day runway`:'Recorded flexible spending');set('labNextMoveTitle',r?.status==='Spending too fast'||r?.status==='Watch spending'?'Slow flexible spending':'Follow the live pace coach');set('labNextMoveText',r?.actionText||`Keep expenses inside the ${money(c.safeToSpend)} safe-to-spend amount until next payday.`);
   }else if(endedCycle){
-    set('labBriefingStatus','Cycle complete');set('labBriefingTitle','This paycheck cycle has reached its next payday.');set('labBriefingCopy','The old confirmed plan stays in history, but Dexx needs the next real check to build a fresh runway.');set('labTodayLabel','AVAILABLE TODAY');set('labTodayMoney',money(Math.max(0,Number(data.currentBalance)||0)));set('labTodayNote','Enter the new check to refresh the Lab');set('labCheckLabel','LAST CONFIRMED CHECK');set('labSafeLabel','LAST SAFE');set('labSafeMoney',money(plannedSafe));set('labSafeNote','Previous confirmed cycle');set('labNextMoveTitle','Start the next paycheck cycle');set('labNextMoveText','Prepare the next plan. The next payday date can be expected, but the amount stays unknown until the real deposit is confirmed.');
+    set('labBriefingStatus','Cycle complete');set('labBriefingTitle','This paycheck cycle has reached its next payday.');set('labBriefingCopy','The old confirmed plan stays in history, but Dexx needs the next real check to build a fresh runway.');set('labTodayLabel','AVAILABLE TODAY');set('labTodayMoney',money(Math.max(0,Number(data.currentBalance)||0)));set('labTodayNote','Enter the new check to refresh the Lab');set('labCheckLabel','LAST CONFIRMED CHECK');set('labSafeLabel','LAST SAFE TO SPEND');set('labSafeMoney',money(plannedSafe));set('labSafeNote','Previous confirmed cycle');set('labNextMoveTitle','Start the next paycheck cycle');set('labNextMoveText','Prepare the next plan. The next payday date can be expected, but the amount stays unknown until the real deposit is confirmed.');
   }else{
-    set('labBriefingStatus',paycheck?'Plan not approved':'Setup needed');set('labBriefingTitle',paycheck?'Your next check is entered — finish the plan.':'Set up your next payday.');set('labBriefingCopy','Dexx connects paycheck, bills, reserves, savings, debt, and spending only after the plan is built and reality is confirmed.');set('labTodayLabel','AVAILABLE TODAY');set('labTodayMoney',money(Math.max(0,Number(data.currentBalance)||0)));set('labTodayNote','Current available balance');set('labCheckLabel',paycheck?'ENTERED CHECK':'UPCOMING CHECK');set('labSafeLabel','ESTIMATED SAFE');set('labSafeMoney',paycheck?money(plannedSafe):'$0.00');set('labSafeNote','Not live money');set('labNextMoveTitle',paycheck?'Review and approve the payday plan':'Enter your next check');set('labNextMoveText',paycheck?'Review Dexx’s allocations before payday check-in.':'Start in Payday Mode. Planned money stays separate from money available today.');
+    set('labBriefingStatus',paycheck?'Plan not approved':'Setup needed');set('labBriefingTitle',paycheck?'Your next check is entered — finish the plan.':'Set up your next payday.');set('labBriefingCopy','Dexx connects paycheck, bills, reserves, savings, debt, and spending only after the plan is built and reality is confirmed.');set('labTodayLabel','AVAILABLE TODAY');set('labTodayMoney',money(Math.max(0,Number(data.currentBalance)||0)));set('labTodayNote','Current available balance');set('labCheckLabel',paycheck?'ENTERED CHECK':'UPCOMING CHECK');set('labSafeLabel','ESTIMATED SAFE TO SPEND');set('labSafeMoney',paycheck?money(plannedSafe):'$0.00');set('labSafeNote','Not live money');set('labNextMoveTitle',paycheck?'Review and approve the payday plan':'Enter your next check');set('labNextMoveText',paycheck?'Review Dexx’s allocations before payday check-in.':'Start in Payday. Planned money stays separate from money available today.');
   }
   const readiness=labReadinessIntelligence(),accuracy=$('labPlanAccuracy');if(accuracy){accuracy.classList.toggle('warning',readiness.accuracy!=='Strong');accuracy.querySelector('strong').textContent=`${readiness.accuracy.toUpperCase()} PLAN ACCURACY`;accuracy.querySelector('span').textContent=readiness.accuracyText;}
 }
@@ -2579,7 +2579,7 @@ function renderTimeline(c){
   const host=$('financialTimeline');if(!host)return;host.replaceChildren();const events=[];
   const plan=data.approvedPlan,funded=!!plan&&planFundingStatus(plan)==='funded';
   if(c.paycheck){const d=dateAtNoon(plan?.payDate||data.payDate)||c.today;events.push({date:d,label:funded?'Paycheck confirmed':'Planned paycheck',amount:c.paycheck,type:funded?'income':'planned'});}
-  if(c.savings&&funded)events.push({date:c.today,label:'Move to savings',amount:-c.savings,type:'saving'});
+  if(c.savings&&funded)events.push({date:c.today,label:'Savings',amount:-c.savings,type:'saving'});
   c.currentExpenses.forEach(x=>events.push({date:dateAtNoon(x.date)||c.today,label:x.name,amount:-x.amount,type:'expense'}));c.dueNowBills.forEach(b=>events.push({date:dateAtNoon(b.date)||c.today,label:b.name,amount:-Number(b.amount||0),type:'bill'}));c.upcomingBills.forEach(b=>events.push({date:dateAtNoon(b.date),label:`${funded?'Protected for':'Plan reserve for'} ${escapeHTML(b.name)}`,amount:-Number(b.currentCheckReserve||0),type:'reserve'}));events.push({date:c.nextPay,label:'Next payday date',amount:0,type:'payday'});
   events.filter(e=>dateAtNoon(e.date)).sort((a,b)=>dateAtNoon(a.date)-dateAtNoon(b.date)).slice(0,8).forEach(e=>{const row=document.createElement('div');row.className='timeline-row';row.innerHTML=`<div><strong>${dateText(e.date,{weekday:'short',month:'short',day:'numeric'})}</strong><span>${escapeHTML(e.label)}</span></div><b>${e.amount?money(e.amount):'Coming up'}</b>`;host.append(row)});if(!events.length)host.innerHTML='<div class="empty-copy">Add your paycheck and bills to build the week ahead.</div>';
 }
@@ -2647,7 +2647,7 @@ function renderGuidedSetup(){
   const cont=$('setupContinueRecommended');if(cont){cont.textContent=!state.requiredReady?'FINISH REQUIRED SETUP':next?`ADD ${next.toUpperCase()} NEXT`:'SETUP LOOKS GOOD';cont.disabled=state.requiredReady&&!next}
   set('setupFinalStatus',state.requiredReady?'Your Lab can open now. Recommended information can still be added before or after you enter.':'Complete the two required steps to enter your Lab. Bills, debt, savings, and spending can be added now or later.');
 }
-function renderProfile(){const p=data.profile||DEFAULTS.profile;const map={profileName:data.researcherName||'',payFrequency:p.payFrequency,paydayDay:String(p.paydayDay??5),incomePattern:p.incomePattern,recurringBillCount:p.recurringBillCount,financialStrategy:p.financialStrategy,profileSavingsRate:data.savingsRate||10,reserveDays:String(p.reserveDays||14)};Object.entries(map).forEach(([id,v])=>{if($(id))$(id).value=v});const fields=[data.researcherName,p.payFrequency,p.incomePattern,p.recurringBillCount,p.financialStrategy,data.savingsRate,p.reserveDays],pct=Math.round(fields.filter(v=>v!==''&&v!==null&&v!==undefined).length/fields.length*100);if($('profileCompletion'))$('profileCompletion').textContent=`${pct}% complete`;if($('profileReady'))$('profileReady').textContent=pct===100?'Ready for Payday Mode':'Needs setup';if($('profileSummary'))$('profileSummary').innerHTML=`<div><span>PAY SCHEDULE</span><strong>${p.payFrequency||'weekly'}</strong></div><div><span>CHECK AMOUNT</span><strong>${p.incomePattern==='variable'?'Variable':'Steady'}</strong></div><div><span>BILLS SAVED</span><strong>${billDefinitions().length} saved</strong></div><div><span>STRATEGY</span><strong>${p.financialStrategy||'balanced'}</strong></div>`;renderBillManager()}
+function renderProfile(){const p=data.profile||DEFAULTS.profile;const map={profileName:data.researcherName||'',payFrequency:p.payFrequency,paydayDay:String(p.paydayDay??5),incomePattern:p.incomePattern,recurringBillCount:p.recurringBillCount,financialStrategy:p.financialStrategy,profileSavingsRate:data.savingsRate||10,reserveDays:String(p.reserveDays||14)};Object.entries(map).forEach(([id,v])=>{if($(id))$(id).value=v});const fields=[data.researcherName,p.payFrequency,p.incomePattern,p.recurringBillCount,p.financialStrategy,data.savingsRate,p.reserveDays],pct=Math.round(fields.filter(v=>v!==''&&v!==null&&v!==undefined).length/fields.length*100);if($('profileCompletion'))$('profileCompletion').textContent=`${pct}% complete`;if($('profileReady'))$('profileReady').textContent=pct===100?'Ready for Payday':'Needs setup';if($('profileSummary'))$('profileSummary').innerHTML=`<div><span>PAY SCHEDULE</span><strong>${p.payFrequency||'weekly'}</strong></div><div><span>CHECK AMOUNT</span><strong>${p.incomePattern==='variable'?'Variable':'Steady'}</strong></div><div><span>BILLS SAVED</span><strong>${billDefinitions().length} saved</strong></div><div><span>STRATEGY</span><strong>${p.financialStrategy||'balanced'}</strong></div>`;renderBillManager()}
 function resetBillManagerForm(){if(!$('billManagerForm'))return;$('managerBillId').value='';$('managerBillName').value='';$('managerBillAmount').value='';$('managerBillDate').value='';$('managerBillFrequency').value='monthly';$('managerBillPriority').value='essential';$('managerBillAutopay').checked=false;$('saveManagedBill').textContent='SAVE RECURRING BILL';$('cancelBillEdit').hidden=true}
 function renderBillManager(){const host=$('managedBills');if(!host)return;const defs=billDefinitions(),estimate=Number(data.profile?.recurringBillCount)||0;if($('billManagerProgress'))$('billManagerProgress').textContent=`${defs.length} bill${defs.length===1?'':'s'} saved`;if($('billManagerEstimate'))$('billManagerEstimate').textContent=estimate?`Profile estimate: ${estimate} recurring bill${estimate===1?'':'s'}. This is a planning estimate, not a limit.`:'Add as many recurring bills as you need. There is no bill limit.';host.replaceChildren();if(!defs.length){host.innerHTML='<div class="empty-copy">No recurring bills saved yet. Add your first bill above.</div>';return}defs.sort((a,b)=>(a.dueDate||'9999').localeCompare(b.dueDate||'9999')).forEach(b=>{const card=document.createElement('article');card.className='managed-bill';const freq={monthly:'Monthly',weekly:'Weekly',biweekly:'Every 2 weeks',once:'One time'}[b.frequency]||b.frequency;card.innerHTML=`<div class="managed-bill-main"><div><strong>${escapeHTML(b.name)}</strong><span>${freq} · ${b.priority}${b.autopay?' · Autopay':''}</span></div><b>${money(b.amount)}</b></div><div class="managed-bill-meta"><span>Next due ${b.dueDate?dateText(b.dueDate,{month:'short',day:'numeric',year:'numeric'}):'TBD'}</span><div><button type="button" data-edit-bill="${b.id}">Edit</button><button type="button" class="danger-link" data-delete-bill="${b.id}">Delete</button></div></div>`;host.append(card)})}
 
@@ -2669,7 +2669,7 @@ function renderSavingsManager(){
     const card=document.createElement('article');card.className='savings-goal-card';
     const pct=g.target?Math.min(100,Math.round(g.saved/g.target*100)):0;
     const due=g.targetDate?dateText(g.targetDate,{month:'short',day:'numeric',year:'numeric'}):'No deadline';
-    card.innerHTML=`${target&&target.id===g.id?'<div class="dexx-savings-target">DEXX SAVINGS TARGET</div>':''}<div class="goal-card-head"><div><strong>${escapeHTML(g.name)}</strong><span>${g.category.replace('-',' ')} · ${g.priority} priority</span></div><b>${money(g.saved)} <small>/ ${money(g.target)}</small></b></div><div class="goal-progress"><i style="width:${pct}%"></i></div><div class="goal-meta"><span>${pct}% funded · ${money(goalRemaining(g))} left · ${due}</span><div><button type="button" data-add-saving="${g.id}">Add money</button><button type="button" data-withdraw-saving="${g.id}">Withdraw</button><button type="button" data-edit-saving="${g.id}">Edit</button><button type="button" class="danger-link" data-delete-saving="${g.id}">Delete</button></div></div>`;
+    card.innerHTML=`${target&&target.id===g.id?'<div class="dexx-savings-target">PRIORITY GOAL</div>':''}<div class="goal-card-head"><div><strong>${escapeHTML(g.name)}</strong><span>${g.category.replace('-',' ')} · ${g.priority} priority</span></div><b>${money(g.saved)} <small>/ ${money(g.target)}</small></b></div><div class="goal-progress"><i style="width:${pct}%"></i></div><div class="goal-meta"><span>${pct}% funded · ${money(goalRemaining(g))} left · ${due}</span><div><button type="button" data-add-saving="${g.id}">Add money</button><button type="button" data-withdraw-saving="${g.id}">Withdraw</button><button type="button" data-edit-saving="${g.id}">Edit</button><button type="button" class="danger-link" data-delete-saving="${g.id}">Delete</button></div></div>`;
     host.append(card)
   });
 }
@@ -2689,7 +2689,7 @@ function renderDebtManager(){
     const card=document.createElement('article');card.className='managed-debt';
     const due=d.dueDate?dateText(d.dueDate,{month:'short',day:'numeric'}):'TBD';
     card.innerHTML=`<div class="debt-card-head"><div><strong>${escapeHTML(d.name)}</strong><span>${({'credit-card':'Credit card',loan:'Loan',medical:'Medical',other:'Other'})[d.accountType]||'Debt'} · ${d.apr.toFixed(2)}% APR</span></div><b>${money(d.balance)}</b></div><div class="debt-card-meta"><span>Minimum ${money(d.minimumPayment)} · Due ${due}</span><div><button type="button" data-pay-debt="${d.id}">Record payment</button><button type="button" data-edit-debt="${d.id}">Edit</button><button type="button" class="danger-link" data-delete-debt="${d.id}">Delete</button></div></div>`;
-    if(target&&target.id===d.id){const badge=document.createElement('div');badge.className='dexx-target';badge.textContent='DEXX EXTRA-PAYMENT TARGET';card.prepend(badge)}
+    if(target&&target.id===d.id){const badge=document.createElement('div');badge.className='dexx-target';badge.textContent='PRIORITY — EXTRA PAYMENTS GO HERE';card.prepend(badge)}
     host.append(card)
   });
 }
@@ -2713,9 +2713,9 @@ function renderPlanMainIncomes(c){
   });
   host.innerHTML=rows.length?`<div class="section-head"><span>MAIN INCOMES</span></div>`+rows.join(''):'';
 }
-function render(){reconcileExecutionState();const c=calc(),hour=new Date().getHours();renderNextPaycheckLaunchpad();renderPaydayCommandCenter(c);renderPaydayCatchup();renderLabBriefing(c);renderLabReadinessIntelligence();renderMoneyJourney(c);renderJourneyBar(c);$('greeting').textContent=`GOOD ${hour<12?'MORNING':hour<17?'AFTERNOON':'EVENING'}, ${(data.researcherName||'RESEARCHER').toUpperCase()} 👋`;if($('healthScore'))$('healthScore').textContent=c.score;if($('scoreRing'))$('scoreRing').style.setProperty('--score',c.score);if($('healthMessage'))$('healthMessage').textContent=c.score>=80?'Your payday plan is fully protected.':c.score>=60?'Your plan is gaining strength.':'Complete Payday Mode to improve your score.';const activeFunded=!!data.approvedPlan&&planFundingStatus(data.approvedPlan)==='funded';$('cashAvailable').textContent=money(activeFunded?c.safeToSpend:Math.max(0,Number(data.currentBalance)||0));$('billsWeek').textContent=money(c.payNow);$('savingsTotal').textContent=money(savingsGoalDefinitions().length?totalGoalSavings():c.savings);$('debtRemaining').textContent=money(totalDebtBalance());$('missionCount').textContent=`${c.missionDone} / 4`;$('progressText').textContent=`${c.progress}%`;$('progressBar').style.width=`${c.progress}%`;$('dexxObservation').textContent=recommendation(c);const conf=confidence(c);if($('confidenceLabel'))$('confidenceLabel').textContent=conf.level;if($('confidenceText'))$('confidenceText').textContent=conf.text;if($('confidenceBar'))$('confidenceBar').style.width=`${conf.pct}%`;renderTimeline(c);renderProfile();renderGuidedSetup();renderDebtManager();renderDebtOutlook();renderSavingsManager();renderSavingsOutlook();renderExpenseManager(c);renderReports(c);renderCalendar(c);renderMemoryGuard();renderSafetyRecovery();renderHealthScore(c);renderDebtStatusControl();renderActionCenter(c);if(debtDefinitions().length&&$('debtAmount')){$('debtAmount').value=totalDebtBalance();$('debtAmount').readOnly=true;$('debtAmount').title='Managed automatically from Credit Lab';}else if($('debtAmount')){$('debtAmount').readOnly=false;}document.querySelectorAll('[data-mission]').forEach(x=>x.checked=!!data.missions[x.dataset.mission]);billRows($('billList'),c.bills.filter(b=>!b.paid).slice(0,4));billRows($('allBills'),c.dueNowBills);prepareRows($('prepareBills'),c.upcomingBills);if($('reserveMemorySummary'))$('reserveMemorySummary').innerHTML=`<strong>${money(c.rememberedReserve)}</strong><span>already protected from approved payday plans</span>`;
+function render(){reconcileExecutionState();const c=calc(),hour=new Date().getHours();renderNextPaycheckLaunchpad();renderPaydayCommandCenter(c);renderPaydayCatchup();renderLabBriefing(c);renderLabReadinessIntelligence();renderMoneyJourney(c);renderJourneyBar(c);$('greeting').textContent=`GOOD ${hour<12?'MORNING':hour<17?'AFTERNOON':'EVENING'}, ${(data.researcherName||'RESEARCHER').toUpperCase()} 👋`;if($('healthScore'))$('healthScore').textContent=c.score;if($('scoreRing'))$('scoreRing').style.setProperty('--score',c.score);if($('healthMessage'))$('healthMessage').textContent=c.score>=80?'Your payday plan is fully protected.':c.score>=60?'Your plan is gaining strength.':'Complete Payday to improve your score.';const activeFunded=!!data.approvedPlan&&planFundingStatus(data.approvedPlan)==='funded';$('cashAvailable').textContent=money(activeFunded?c.safeToSpend:Math.max(0,Number(data.currentBalance)||0));$('billsWeek').textContent=money(c.payNow);$('savingsTotal').textContent=money(savingsGoalDefinitions().length?totalGoalSavings():c.savings);$('debtRemaining').textContent=money(totalDebtBalance());$('missionCount').textContent=`${c.missionDone} / 4`;$('progressText').textContent=`${c.progress}%`;$('progressBar').style.width=`${c.progress}%`;$('dexxObservation').textContent=recommendation(c);const conf=confidence(c);if($('confidenceLabel'))$('confidenceLabel').textContent=conf.level;if($('confidenceText'))$('confidenceText').textContent=conf.text;if($('confidenceBar'))$('confidenceBar').style.width=`${conf.pct}%`;renderTimeline(c);renderProfile();renderGuidedSetup();renderDebtManager();renderDebtOutlook();renderSavingsManager();renderSavingsOutlook();renderExpenseManager(c);renderReports(c);renderCalendar(c);renderHomeCalendar(c);renderSavingsFund(c);renderMemoryGuard();renderSafetyRecovery();renderHealthScore(c);renderDebtStatusControl();renderActionCenter(c);if(debtDefinitions().length&&$('debtAmount')){$('debtAmount').value=totalDebtBalance();$('debtAmount').readOnly=true;$('debtAmount').title='Managed automatically from Debt';}else if($('debtAmount')){$('debtAmount').readOnly=false;}document.querySelectorAll('[data-mission]').forEach(x=>x.checked=!!data.missions[x.dataset.mission]);billRows($('billList'),c.bills.filter(b=>!b.paid).slice(0,4));billRows($('allBills'),c.dueNowBills);prepareRows($('prepareBills'),c.upcomingBills);if($('reserveMemorySummary'))$('reserveMemorySummary').innerHTML=`<strong>${money(c.rememberedReserve)}</strong><span>already held back from approved payday plans</span>`;
   ['paycheck','currentBalance','saveAmount','debtAmount','debtGoal','savingsRate'].forEach(id=>{if($(id))$(id).value=data[id]||(id==='savingsRate'?10:'')});if($('payDate'))$('payDate').value=iso(dateAtNoon(data.payDate)||new Date());if($('nextPayday'))$('nextPayday').value=iso(dateAtNoon(data.nextPayday))||'';
-  if($('planPayNow')){const d=commandCenterPlan(c);$('planPayNow').textContent=money(d.payNow);$('planReserve').textContent=money(d.reserve);$('planSavings').textContent=money(d.savings);$('planDebt').textContent=money(d.debtPayment);$('planSpend').textContent=money(d.safeToSpend);$('planStatus').textContent=d.shortfall?'Needs attention':data.approvedPlan?'Approved · executing':d.paycheck?'Plan ready':'Ready';$('dexxPlanText').textContent=recommendation(d);const total=d.paycheck||d.available||1;[['allocBills',d.payNow],['allocReserve',d.reserve],['allocSavings',d.savings],['allocDebt',d.debtPayment],['allocFund',d.setAside],['allocSpend',d.safeToSpend]].forEach(([id,val])=>$(id).style.width=`${Math.max(0,val/total*100)}%`);allocationRows(d);renderBillCoverage(d);$('customSavings').value=data.customSavings??'';$('customDebt').value=data.customDebt??'';$('unexpectedFund').value=data.unexpectedFund||'';const step=!c.paycheck?1:!c.bills.length?2:!data.approvedPlan?4:5;$('workflowStatus').textContent=`Step ${step} of 5`;$('workflowCopy').textContent=step===1?'Enter your check and payday dates.':step===2?'Add and confirm every bill coming before and after payday.':step===4?'Review Dexx’s recommendation and adjust only if needed.':'Plan approved. Track the experiment until next payday.';document.querySelectorAll('.step-track i').forEach((x,i)=>x.classList.toggle('active',i<step));const ex=experiment(c);$('experimentTitle').textContent=ex.title;$('experimentText').textContent=ex.text;$('experimentBar').style.width=`${ex.progress}%`;$('experimentProgress').textContent=`${ex.progress}% complete`;renderPlanMainIncomes(c);renderHistory()}}
+  if($('planPayNow')){const d=commandCenterPlan(c);$('planPayNow').textContent=money(d.payNow);$('planReserve').textContent=money(d.reserve);$('planSavings').textContent=money(d.savings);$('planDebt').textContent=money(d.debtPayment);$('planSpend').textContent=money(d.safeToSpend);$('planStatus').textContent=d.shortfall?'Needs attention':data.approvedPlan?'Approved · executing':d.paycheck?'Plan ready':'Ready';$('dexxPlanText').textContent=recommendation(d);const total=d.paycheck||d.available||1;[['allocBills',d.payNow],['allocReserve',d.reserve],['allocSavings',d.savings],['allocDebt',d.debtPayment],['allocFund',d.setAside],['allocSpend',d.safeToSpend]].forEach(([id,val])=>$(id).style.width=`${Math.max(0,val/total*100)}%`);allocationRows(d);renderBillCoverage(d);$('customSavings').value=data.customSavings??'';$('customDebt').value=data.customDebt??'';$('unexpectedFund').value=data.unexpectedFund||'';const step=!c.paycheck?1:!c.bills.length?2:!data.approvedPlan?4:5;$('workflowStatus').textContent=`Step ${step} of 5`;$('workflowCopy').textContent=step===1?'Enter your check and payday dates.':step===2?'Add and confirm every bill coming before and after payday.':step===4?'Review Dexx’s recommendation and adjust only if needed.':'Plan approved. Track your spending until next payday.';document.querySelectorAll('.step-track i').forEach((x,i)=>x.classList.toggle('active',i<step));const ex=experiment(c);$('experimentTitle').textContent=ex.title;$('experimentText').textContent=ex.text;$('experimentBar').style.width=`${ex.progress}%`;$('experimentProgress').textContent=`${ex.progress}% complete`;renderPlanMainIncomes(c);renderHistory()}}
 function show(id){document.body.dataset.view=id;document.body.classList.remove('front-door-active');document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===id));document.querySelectorAll('.bottom-nav button').forEach(b=>b.classList.toggle('active',b.dataset.go===id));history.replaceState(null,'','#'+id);scrollTo({top:0,behavior:'smooth'})}
 document.addEventListener('click',e=>{const go=e.target.closest('[data-go]');if(document.body.classList.contains('front-door-active'))return;if(go){e.preventDefault();show(go.dataset.go);const target=go.dataset.journeyScroll;if(target)setTimeout(()=>{const el=target==='execution'?$('paydayExecutionMode'):target==='next'?document.querySelector('.next-paycheck-launchpad'):target==='check'?$('budgetForm'):document.querySelector('.paycheck-planner');el?.scrollIntoView({behavior:'smooth',block:'start'});if(target==='check')$('paycheck')?.focus()},120)}const q=e.target.closest('[data-question]');if(q){const c=calc(),answers={score:`Your score is ${c.score}. Cover immediate bills, protect ${money(c.savings)} in savings, and stay within ${money(c.safeToSpend)}.`,spending:`Your safe-to-spend amount is ${money(c.safeToSpend)} through ${dateText(c.nextPay,{month:'short',day:'numeric'})}.`,challenge:experiment(c).text,saving:`I recommend ${money(c.savings)} this payday${c.savingsGoalTarget?` toward ${c.savingsGoalTarget.name}`:''}. Increase it only after immediate and upcoming bills are protected.`};dexxAsk(q.firstChild.textContent.trim(),answers[q.dataset.question])}});
 document.addEventListener('click',e=>{
@@ -2768,7 +2768,7 @@ $('checkPaycheckDifference')?.addEventListener('click',()=>{
     if(msg){msg.textContent=`The actual check leaves ${money(preview.shortfall)} of immediate bills unfunded. Dexx will not activate this plan until you review the recalculated numbers.`;msg.classList.add('watch')}
     if(activate){activate.textContent='REVIEW UPDATED PLAN';activate.dataset.mode='review'}
   }else{
-    if(msg){msg.textContent=Math.abs(variance)<.005?'The deposit matches the plan. Dexx is ready to activate the paycheck and fund the scheduled protection.':`Dexx recalculated the plan using ${money(actual)}. Review the updated protection and TRUE Safe-to-Spend above before activation.`;msg.classList.remove('watch')}
+    if(msg){msg.textContent=Math.abs(variance)<.005?'The deposit matches the plan. Dexx is ready to activate the paycheck and fund the scheduled protection.':`Dexx recalculated the plan using ${money(actual)}. Review the updated protection and safe-to-spend above before activation.`;msg.classList.remove('watch')}
     if(activate){activate.textContent='ACTIVATE RECONCILED PAYDAY';activate.dataset.mode='activate'}
   }
   if(box)box.hidden=false;
@@ -2800,8 +2800,8 @@ $('expenseForm')?.addEventListener('submit',e=>{
   save();
   const hasActiveCycle=!!activeExpenseCycleId();
   $('expenseStatus').textContent=existing
-    ?(hasActiveCycle?'Expense updated. Dexx recalculated TRUE Safe-to-Spend.':'Expense updated. It will attach to the next paycheck plan you build.')
-    :(hasActiveCycle?'Expense recorded. Dexx updated your remaining TRUE Safe-to-Spend.':'Expense saved as pending spending. Build your payday plan and Dexx will attach it to that paycheck cycle.');
+    ?(hasActiveCycle?'Expense updated. Dexx recalculated safe-to-spend.':'Expense updated. It will attach to the next paycheck plan you build.')
+    :(hasActiveCycle?'Expense recorded. Dexx updated your remaining safe-to-spend.':'Expense saved as pending spending. Build your payday plan and Dexx will attach it to that paycheck cycle.');
   resetExpenseForm();
 });
 $('cancelExpenseEdit')?.addEventListener('click',()=>{resetExpenseForm();$('expenseStatus').textContent='Edit canceled.'});
@@ -2809,7 +2809,7 @@ document.addEventListener('click',e=>{
   const edit=e.target.closest('[data-edit-expense]');
   if(edit){const x=data.expenseRecords.find(v=>v.id===edit.dataset.editExpense);if(!x)return;$('expenseId').value=x.id;$('expenseName').value=x.name;$('expenseAmount').value=x.amount;$('expenseCategory').value=x.category||'other';$('expenseDate').value=x.date;$('expenseNote').value=x.note||'';$('expenseFundToggle').checked=x.source==='unexpected';$('saveExpense').textContent='UPDATE EXPENSE';$('cancelExpenseEdit').hidden=false;$('expenseStatus').textContent=`Editing ${escapeHTML(x.name)}.`;show('expense')}
   const del=e.target.closest('[data-delete-expense]');
-  if(del){const x=data.expenseRecords.find(v=>v.id===del.dataset.deleteExpense);if(x&&confirm(`Delete ${escapeHTML(x.name)} expense?`)){data.expenseRecords=data.expenseRecords.filter(v=>v.id!==x.id);setRecoveryContext(`Delete expense: ${escapeHTML(x.name)}`,`${money(x.amount)} expense removed.`,'delete');save();$('expenseStatus').textContent=`${escapeHTML(x.name)} deleted. TRUE Safe-to-Spend was recalculated.`}}
+  if(del){const x=data.expenseRecords.find(v=>v.id===del.dataset.deleteExpense);if(x&&confirm(`Delete ${escapeHTML(x.name)} expense?`)){data.expenseRecords=data.expenseRecords.filter(v=>v.id!==x.id);setRecoveryContext(`Delete expense: ${escapeHTML(x.name)}`,`${money(x.amount)} expense removed.`,'delete');save();$('expenseStatus').textContent=`${escapeHTML(x.name)} deleted. Safe-to-spend was recalculated.`}}
 });
 
 
@@ -3004,7 +3004,7 @@ $('approvePlan').onclick=()=>{
   data.approvedPlan=snapshot;data.paycheckHistory.push(snapshot);data.missions.friday=true;data.missions.saving=c.savings>0;data.missions.bills=c.bills.length>0;
   executionState={planId:snapshot.id,done:{},updatedAt:new Date().toISOString()};saveExecutionState();
   setRecoveryContext('Approve payday plan',`${money(c.paycheck)} paycheck plan approved for ${dateText(data.payDate,{month:'short',day:'numeric'})}. Funding waits for actual-paycheck reconciliation.`,'approval');
-  save();$('approvalStatus').textContent=beforePayday?`Payday plan approved for ${dateText(data.payDate,{month:'short',day:'numeric'})}. Nothing is funded yet — payday will unlock actual-paycheck check-in.`:`Payday plan approved. Enter the actual deposit and reconcile it before Dexx funds reserves, savings, or TRUE Safe-to-Spend.`;
+  save();$('approvalStatus').textContent=beforePayday?`Payday plan approved for ${dateText(data.payDate,{month:'short',day:'numeric'})}. Nothing is funded yet — payday will unlock actual-paycheck check-in.`:`Payday plan approved. Enter the actual deposit and reconcile it before Dexx funds reserves, savings, or safe-to-spend.`;
 };
 $('clearBills').onclick=()=>resetFinancialArea('bills');
 function clearActiveCheck(){
@@ -3223,7 +3223,7 @@ function renderJourneyBar(c){
   const bar=$('journeyBar');if(!bar)return;
   const j=moneyJourneyState(c);const idx=j.steps.indexOf(j.current);
   const set=(id,v)=>{const el=$(id);if(el)el.textContent=v};
-  set('journeyBarStep',j.current?`STEP ${idx+1} OF ${j.steps.length} · YOUR MONEY JOURNEY`:'YOUR MONEY JOURNEY');
+  set('journeyBarStep',j.current?`STEP ${idx+1} OF ${j.steps.length} · WHAT’S NEXT`:'WHAT’S NEXT');
   set('journeyBarTitle',j.current?j.current.title:'Journey ready');
   const src=$('moneyJourneyAction'),btn=$('journeyBarAction');
   if(src&&btn){btn.textContent=src.textContent;btn.disabled=!!src.disabled;btn.style.display=src.disabled?'none':''}
@@ -3244,3 +3244,101 @@ function renderJourneyBar(c){
   const doorBtn=document.getElementById('drawerFrontDoorBtn');
   if(doorBtn)doorBtn.addEventListener('click',function(e){e.preventDefault();openFrontDoor();});
 })();
+
+
+/* ============ Simplified layout patch (2026-11-05) ============
+   Home calendar ("Your month"), Savings fund card, More sheets.
+   Uses the same data and plan math as the rest of the app. */
+var slHomeDayMap = {};
+function renderHomeCalendar(c){
+  var grid=$('slHomeCalGrid'),label=$('slHomeCalMonth');
+  if(!grid)return;
+  var now=new Date(),y=now.getFullYear(),m=now.getMonth();
+  if(label)label.textContent=now.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  var first=new Date(y,m,1,12),last=new Date(y,m+1,0,12);
+  var start=dateAtNoon(first),end=dateAtNoon(last);
+  var occ=billOccurrences(start,end);
+  var pays=forecastPaydays(start,end);
+  var byDay={};
+  pays.forEach(function(d){(byDay[d]=byDay[d]||{payday:true,bills:[]});});
+  occ.forEach(function(o){var d=o.date;(byDay[d]=byDay[d]||{payday:false,bills:[]});byDay[d].bills.push(o);});
+  slHomeDayMap=byDay;
+  grid.replaceChildren();
+  var lead=start.getDay(),todayIso=iso(dateAtNoon(new Date()));
+  for(var i=0;i<lead;i++){var pad=document.createElement('div');pad.className='calendar-day empty';grid.append(pad);}
+  for(var d=1;d<=last.getDate();d++){
+    var dt=dateAtNoon(new Date(y,m,d,12)),key=iso(dt),info=byDay[key];
+    var has=!!info&&(info.payday||info.bills.length>0);
+    var el=document.createElement(has?'button':'div');
+    el.className='calendar-day'+(key===todayIso?' today':'');
+    if(has){el.type='button';el.setAttribute('data-sl-day',key);el.setAttribute('aria-label','See details for '+key);}
+    var num=document.createElement('span');num.className='calendar-num';num.textContent=d;el.append(num);
+    if(has){
+      var dots=document.createElement('div');dots.className='sl-home-dots';
+      if(info.payday){var pd=document.createElement('i');pd.className='payday-dot';dots.append(pd);}
+      info.bills.forEach(function(){var bd=document.createElement('i');bd.className='bill-dot';dots.append(bd);});
+      el.append(dots);
+    }
+    grid.append(el);
+  }
+}
+function renderSavingsFund(c){
+  var bal=$('slFundBalance'),res=$('slFundReserve'),st=$('slFundStatus');
+  if(!bal||!res)return;
+  var p=commandCenterPlan(calc());
+  bal.textContent=money(p.fundRemaining||0);
+  res.textContent=money(p.reserve||0);
+  if(st)st.textContent=(p.fundRemaining||0)>0?'Funded':'Not set yet';
+}
+var slSheetData={
+  bills:{title:'Bills',body:'<p>Your recurring bills live here. Add a bill once, with the amount and the day it is due, and Dexx holds back money from each paycheck so the bill is covered when it comes due.</p><p>Tap a bill to change its amount or due date, or to mark it paid.</p>',action:'OPEN BILLS',go:'profile'},
+  income:{title:'Income',body:'<p>Your paycheck and any other money coming in. Dexx uses your paycheck date to build the plan for that cycle, and learns from the checks you confirm.</p><p>If your pay changes, update the amount here so the plan stays honest.</p>',action:'OPEN INCOME',go:'profile'},
+  spending:{title:'Spending history',body:'<p>A record of money spent this paycheck cycle, in one place.</p><p>Expenses come off your safe-to-spend, not out of money already held back for bills, savings, or debt.</p>',action:'OPEN SPENDING',go:'expense'},
+  scan:{title:'Scan a bill document',body:'<p>Take a photo of a bill, statement, or receipt and Dexx reads it for you.</p><p>Dexx shows what it found before anything is saved, so you can check the numbers first.</p>',action:'OPEN CAMERA',fn:function(){var el=$("dexxPhotoInput");if(el)el.click();}},
+  account:{title:'Account and backup',body:'<p>Your cloud account keeps your Lab on this device and lets it move to a new phone.</p><p>Your plan and your numbers stay on your device. The cloud account only stores the sign-in and the backup.</p>',action:'OPEN ACCOUNT',fn:function(){var el=$('cloudCard');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});}},
+  restore:{title:'Restore data',body:'<p>If your data is ever missing, or you move to a new phone, you can bring your Lab back from a backup or from the cloud.</p><p>Restoring replaces what is on this device with the backup, so check the backup date first.</p>',action:'OPEN RESTORE',fn:function(){var el=document.querySelector('.memory-guard-card');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});}},
+  how:{title:'How it works',body:'<p>One paycheck, one plan.</p><ul><li><strong>Enter your paycheck.</strong> Amount and payday.</li><li><strong>Add your bills.</strong> Dexx holds back what each bill needs.</li><li><strong>Approve the plan.</strong> Check the numbers, then approve.</li><li><strong>Spend only your safe-to-spend.</strong> Everything else is already spoken for.</li></ul><p>Your next paycheck starts a new cycle. The plan, the checklist, and the money held back all follow the same steps.</p>',action:'SEE THE STEPS',go:'start'}
+};
+function openSlSheet(topic){
+  var t=slSheetData[topic];if(!t)return;
+  var sheet=$('slSheet');if(!sheet)return;
+  $('slSheetTitle').textContent=t.title;
+  $('slSheetBody').innerHTML=t.body;
+  var act=$('slSheetAction');
+  act.textContent=t.action;
+  act.onclick=function(){
+    closeSlSheet();
+    if(t.go)show(t.go);
+    else if(t.fn)t.fn();
+  };
+  sheet.hidden=false;
+}
+function closeSlSheet(){var s=$('slSheet');if(s)s.hidden=true;}
+function openSlDaySheet(key){
+  var info=slHomeDayMap[key];if(!info)return;
+  var sheet=$('slSheet');if(!sheet)return;
+  $('slSheetTitle').textContent=dateText(key,{weekday:'long',month:'long',day:'numeric'});
+  var rows='';
+  if(info.payday){
+    var f=forecastWindow(30);
+    var amt=f.incomePerCheck?('Dexx expects about '+money(f.incomePerCheck)+' based on your confirmed checks.'):'Your paycheck amount is confirmed when the check lands.';
+    rows+='<p><strong>Payday.</strong> '+amt+'</p>';
+  }
+  info.bills.forEach(function(b){
+    var held=protectedFor(b);
+    rows+='<p><strong>'+escapeHTML(b.name||'Bill')+'</strong> — '+money(b.amount||0)+' due. '+(b.paid?'Marked paid.':(held>0?money(held)+' already held back.':'Not held back yet.'))+'</p>';
+  });
+  $('slSheetBody').innerHTML=rows;
+  var act=$('slSheetAction');
+  act.textContent='OPEN FULL CALENDAR';
+  act.onclick=function(){closeSlSheet();show('calendar');};
+  sheet.hidden=false;
+}
+document.addEventListener('click',function(e){
+  var row=e.target.closest?e.target.closest('[data-sl-topic]'):null;
+  if(row){openSlSheet(row.getAttribute('data-sl-topic'));return;}
+  var day=e.target.closest?e.target.closest('[data-sl-day]'):null;
+  if(day){openSlDaySheet(day.getAttribute('data-sl-day'));return;}
+  if(e.target.closest&&e.target.closest('[data-sl-close]')){closeSlSheet();return;}
+  if(e.target&&e.target.id==='slSheet'){closeSlSheet();}
+});

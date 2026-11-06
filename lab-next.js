@@ -193,7 +193,7 @@ function flxApplyMode(){
   flxEnsureData();const biz=data.business.mode==='business';
   document.body.classList.toggle('business-mode',biz);
   const first=document.querySelector('.bottom-nav button');
-  if(first){first.dataset.go=biz?'business':'laboratory';const sp=first.querySelector('span');if(sp)sp.textContent=biz?'Business':'Today'}
+  if(first){first.dataset.go=biz?'business':'laboratory';const sp=first.querySelector('span');if(sp)sp.textContent=biz?'Business':'Home'}
   document.querySelectorAll('[data-lab-mode]').forEach(x=>x.classList.toggle('active',x.dataset.labMode===data.business.mode));
   const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=biz?'#04070d':'#050807';
   /* Business Dexx: suit + shades everywhere he appears (FAB, chat header, hero, observation). */
@@ -391,7 +391,7 @@ function flxExecuteAction(a){
     if(!a.name||!a.date)return 'Add what it was and the date.';
     data.expenseRecords.push({id:flxId('expense'),name:a.name,amount:a.amount,category:a.category||'other',date:a.date,note:'Added by Dexx',cycleId:cycleIdForExpenseDate(a.date,'')});
     setRecoveryContext(`Dexx added expense: ${a.name}`,`${money(a.amount)} ${a.category} expense on ${dateText(a.date,{month:'short',day:'numeric'})}.`,'expense');save();
-    return `Saved. ${money(a.amount)} for ${a.name}. TRUE Safe-to-Spend is now ${money(calc().safeToSpend)}.`;
+    return `Saved. ${money(a.amount)} for ${a.name}. Safe-to-spend is now ${money(calc().safeToSpend)}.`;
   }
   if(a.type==='biz-expense'){if(!a.name)return 'Add what it was.';flxAddBizExpense(a);return `Saved as a business expense: ${a.name}, ${money(a.amount)}. It stays out of your personal spending.`}
   if(a.type==='invoice'){if(!a.client||!a.dueDate)return 'Add the client and due date.';flxAddInvoice(a);return `Invoice saved: ${a.client}, ${money(a.amount)}, due ${dateText(a.dueDate,{month:'short',day:'numeric'})}.`}

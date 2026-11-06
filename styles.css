@@ -1479,3 +1479,29 @@ body{background:#f4f7f2}
   .hero img{mix-blend-mode:screen}
   .dexx-header img{mix-blend-mode:screen}
 }
+
+
+/* ============ Simplified layout patch (2026-11-05) ============
+   Home calendar, More list, generic sheet, Savings fund card.
+   Uses the app theme variables, so light and dark both work. */
+.sl-home-cal-grid .calendar-day{min-height:54px;padding:6px 5px}
+.sl-home-cal-grid button.calendar-day{font:inherit;color:inherit;text-align:left;cursor:pointer}
+.sl-home-cal-grid button.calendar-day:focus-visible{outline:2px solid var(--green)}
+.sl-home-cal-grid .sl-home-dots{display:flex;gap:4px;margin-top:8px;align-items:center}
+.sl-home-cal-card .calendar-legend{margin-top:10px}
+.sl-home-cal-more{width:100%;margin-top:10px}
+.sl-more-rows{display:grid;gap:8px;margin-top:4px}
+.sl-more-row{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;background:transparent;border:1px solid var(--line);border-radius:14px;padding:13px 14px;color:var(--text)}
+.sl-more-row strong{display:block;font-size:.95rem}
+.sl-more-row span{display:block;color:var(--muted);font-size:.78rem;margin-top:2px;line-height:1.4}
+.sl-more-row i{font-style:normal;color:var(--green);font-size:1.2rem}
+.sl-sheet-body{color:var(--text);line-height:1.55;font-size:.95rem}
+.sl-sheet-body p{margin:0 0 10px}
+.sl-sheet-body ul{margin:0 0 10px;padding-left:18px}
+.sl-sheet-body li{margin-bottom:4px}
+.sl-sheet-action{margin-top:12px}
+.sl-fund-rows{display:grid;gap:10px}
+.sl-fund-rows>div{border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.sl-fund-rows span{display:block;font-size:.68rem;font-weight:700;letter-spacing:.08em;color:var(--muted)}
+.sl-fund-rows strong{display:block;font-size:1.25rem;margin-top:4px;color:var(--green)}
+.sl-fund-rows small{display:block;color:var(--muted);font-size:.78rem;line-height:1.45;margin-top:4px}
