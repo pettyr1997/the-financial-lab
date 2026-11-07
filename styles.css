@@ -1683,3 +1683,14 @@ html[data-theme="light"] .dexx-header img{mix-blend-mode:normal}
 .sl-appearance-choices{display:flex;gap:8px}
 .sl-appearance-choice{flex:1;border:1.5px solid var(--line);border-radius:99px;background:var(--surface);color:var(--text);font-size:15px;font-weight:700;padding:12px 8px;cursor:pointer}
 .sl-appearance-choice.on{border-color:var(--green);background:var(--green-soft);color:var(--green-ink)}
+
+/* Overdue ask — Dexx "did this get paid?" card on Home. */
+.sl-overdue-ask-card .manager-copy{margin-top:0}
+.sl-overdue-ask-row{display:flex;flex-direction:column;gap:8px;padding:12px 0;border-top:1px solid var(--line)}
+.sl-overdue-ask-row:first-child{border-top:0;padding-top:2px}
+.sl-overdue-ask-row strong{display:block;font-size:15px}
+.sl-overdue-ask-row span{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+.sl-overdue-ask-actions{display:flex;gap:8px}
+.sl-overdue-ask-actions button{flex:1;border-radius:10px;padding:11px 0;font-weight:800;border:0;cursor:pointer;font-size:14px}
+.sl-overdue-ask-paid{background:var(--green);color:#fff}
+.sl-overdue-ask-notyet{background:var(--surface-2);color:var(--text);border:1px solid var(--line)}
