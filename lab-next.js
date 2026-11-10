@@ -58,9 +58,85 @@ function flxCycleWindow(){
 function pooledIncomeForCycle(start,end){
   const s=dateAtNoon(start),e=dateAtNoon(end);if(!s||!e)return 0;
   let total=0;
-  const add=list=>(Array.isArray(list)?list:[]).forEach(inc=>(inc.received||[]).forEach(r=>{const d=dateAtNoon(r.date);if(d&&d>=s&&d<e)total+=Number(r.amount)||0}));
-  add(data.incomes);add(data.mainIncomes);
+  /* 4.4.0.6 split paycheck: a split part is counted through
+     splitPartForCycle (its expected amount is planned income), never through
+     received marks here — counting it in both places would double it. */
+  const add=(list,skipSplit)=>{(Array.isArray(list)?list:[]).forEach(inc=>{if(skipSplit&&inc&&inc.splitOf==='anchor')return;(inc.received||[]).forEach(r=>{const d=dateAtNoon(r.date);if(d&&d>=s&&d<e)total+=Number(r.amount)||0})})};
+  add(data.incomes,false);add(data.mainIncomes,true);
   return Math.round(total*100)/100;
+}
+/* ── 4.4.0.6 SPLIT PAYCHECK ──────────────────────────────────────────────
+   One check in two parts: Part 1 is the anchor (data.paycheck); Part 2 is a
+   main income flagged splitOf:'anchor'. It is the rest of the SAME check,
+   not a second job. Its expected amount counts toward the cycle income, its
+   payday shows on calendars, and it is confirmed like any income — the plan
+   funds its share only once it lands. */
+function splitPartMain(){
+  const mains=Array.isArray(data.mainIncomes)?data.mainIncomes:[];
+  return mains.find(m=>m&&m.splitOf==='anchor')||null;
+}
+function splitPartOccurrences(start,end){
+  const m=splitPartMain();if(!m)return [];
+  return flxIncomeOccurrences(m,start,end);
+}
+function splitPartForCycle(start,end){
+  const m=splitPartMain();if(!m)return 0;
+  const s=dateAtNoon(start),e=dateAtNoon(end);if(!s||!e)return 0;
+  let total=0;
+  flxIncomeOccurrences(m,start,end).forEach(date=>{
+    const r=(Array.isArray(m.received)?m.received:[]).find(x=>x.date===date);
+    total+=Number(r?r.amount:m.amount)||0;
+  });
+  return Math.round(total*100)/100;
+}
+function splitPartLandingDate(start,end){
+  const dates=splitPartOccurrences(start,end);
+  return dates.length?dates[0]:null;
+}
+function splitPartAmountOn(dateIso){
+  const m=splitPartMain();if(!m||!dateIso)return 0;
+  const dates=flxIncomeOccurrences(m,dateIso,flxAddDays(dateIso,1));
+  if(!dates.length)return 0;
+  const r=(Array.isArray(m.received)?m.received:[]).find(x=>x.date===dateIso);
+  return Number(r?r.amount:m.amount)||0;
+}
+function splitPartReceivedInCycle(start,end){
+  const m=splitPartMain();if(!m)return false;
+  const s=dateAtNoon(start),e=dateAtNoon(end);if(!s||!e)return false;
+  return (Array.isArray(m.received)?m.received:[]).some(r=>{const d=dateAtNoon(r.date);return !!(d&&d>=s&&d<e)});
+}
+function splitPartReceivedAmount(start,end){
+  const m=splitPartMain();if(!m)return 0;
+  const s=dateAtNoon(start),e=dateAtNoon(end);if(!s||!e)return 0;
+  return Math.round((Array.isArray(m.received)?m.received:[]).filter(r=>{const d=dateAtNoon(r.date);return !!(d&&d>=s&&d<e)}).reduce((sum,r)=>sum+Number(r.amount||0),0)*100)/100;
+}
+function splitCheckSnapshot(){
+  const m=splitPartMain();if(!m)return null;
+  return {part1:Math.max(0,Number(data.paycheck)||0),part2:Math.max(0,Number(m.amount)||0),part2Date:m.nextDate||'',frequency:m.frequency||'biweekly'};
+}
+function splitAdvanceNextDate(newPayDate){
+  /* Keep the second half in step with the anchor cycle: advance its nextDate
+     to the first occurrence on/after the new cycle start. */
+  const m=splitPartMain();if(!m)return;
+  const from=dateAtNoon(newPayDate);if(!from)return;
+  const occ=flxIncomeOccurrences(m,from,flxAddDays(from,62));
+  if(occ.length)m.nextDate=occ[0];
+}
+function confirmSplitPartReceived(){
+  /* Mark the second half received for its occurrence in this cycle, then let
+     the plan fund the rest (splitPartConfirmed, app.js). */
+  const m=splitPartMain();if(!m)return false;
+  const w=flxCycleWindow();
+  const dates=flxIncomeOccurrences(m,w.start,w.end);
+  const date=dates.length?dates[0]:m.nextDate;
+  if(!date)return false;
+  const amt=Math.max(0,Number(m.amount)||0);if(amt<=0)return false;
+  m.received=(m.received||[]).filter(r=>r.date!==date);
+  m.received.push({date,amount:amt});
+  if(typeof splitPartConfirmed==='function')splitPartConfirmed();
+  setRecoveryContext(`Second half received: ${m.name}`,`${money(amt)} confirmed — the rest of this check is now funded.`,'change');
+  save();
+  return true;
 }
 function flxIncomeFormHTML(scope){
   return `<form class="flx-income-form" data-income-form="${scope}">
@@ -83,15 +159,20 @@ function flxRenderIncomeLists(){
 }
 function flxRenderIncomeCycle(){
   const host=$('incomeCycleCard');if(!host)return;
-  const list=data.incomes||[];
+  /* 4.4.0.6 split paycheck + mains receive path: main incomes (including the
+     second half of a split check) get the same RECEIVED control as additional
+     incomes — a main could never be marked received before, so it could never
+     pool. */
+  const list=[...(data.incomes||[]),...(Array.isArray(data.mainIncomes)?data.mainIncomes:[])];
   if(!list.length){host.innerHTML=`<div class="section-head"><span>OTHER INCOME THIS CYCLE</span><button type="button" data-go="profile" data-flx-scroll="incomes">Add</button></div><p class="manager-copy">Have more than one income? Add it in your Financial Profile and Dexx will pool it into this journey when it lands.</p>`;return}
   const {start,end}=flxCycleWindow();
   const rows=[];list.forEach(inc=>flxIncomeOccurrences(inc,start,end).forEach(date=>{const r=(inc.received||[]).find(x=>x.date===date);rows.push({inc,date,r})}));
   rows.sort((a,b)=>a.date.localeCompare(b.date));
   const pooled=pooledIncomeForCycle(start,end);
+  const hasSplit=list.some(i=>i.splitOf==='anchor');
   host.innerHTML=`<div class="section-head"><span>OTHER INCOME THIS CYCLE</span><b data-testid="pooled-income-total">${money(pooled)} pooled</b></div>
-  <p class="manager-copy">Your primary paycheck drives the journey. Mark other income received when it actually lands — only then does Dexx pool it into the plan.</p>
-  ${rows.length?rows.map(x=>`<div class="flx-cycle-income ${x.r?'received':''}" data-testid="cycle-income-row"><div><strong>${escapeHTML(x.inc.name)}</strong><small>${x.r?'Received':'Expected'} ${dateText(x.date,{month:'short',day:'numeric'})}</small></div>${x.r?`<b>${money(x.r.amount)}</b><button type="button" class="secondary" data-income-unreceive="${x.inc.id}" data-date="${x.date}">Undo</button>`:`<input type="number" inputmode="decimal" min="0" step="0.01" value="${Number(x.inc.amount).toFixed(2)}" data-receive-amount aria-label="Amount received"/><button type="button" class="primary" data-income-receive="${x.inc.id}" data-date="${x.date}" data-testid="income-mark-received">RECEIVED</button>`}</div>`).join(''):'<p class="empty-copy">No other income expected before your next payday.</p>'}`;
+  <p class="manager-copy">Your primary paycheck drives the journey. Mark other income received when it actually lands — only then does Dexx pool it into the plan.</p>${hasSplit?'<p class="manager-copy">The second half of your check already counts in the plan — confirm it here when it lands so Dexx funds the rest.</p>':''}
+  ${rows.length?rows.map(x=>`<div class="flx-cycle-income ${x.r?'received':''}" data-testid="cycle-income-row"><div><strong>${escapeHTML(x.inc.name)}</strong><small>${x.inc.splitOf==='anchor'?'Second half of your check · ':''}${x.r?'Received':'Expected'} ${dateText(x.date,{month:'short',day:'numeric'})}</small></div>${x.r?`<b>${money(x.r.amount)}</b><button type="button" class="secondary" data-income-unreceive="${x.inc.id}" data-date="${x.date}">Undo</button>`:`<input type="number" inputmode="decimal" min="0" step="0.01" value="${Number(x.inc.amount).toFixed(2)}" data-receive-amount aria-label="Amount received"/><button type="button" class="primary" data-income-receive="${x.inc.id}" data-date="${x.date}" data-testid="income-mark-received">RECEIVED</button>`}</div>`).join(''):'<p class="empty-copy">No other income expected before your next payday.</p>'}`;
 }
 /* 4.4 multi-main: the mains manager. The anchor check is edited in Check
    Details; this form adds further main incomes only. The form carries no
@@ -105,6 +186,7 @@ function flxMainFormHTML(){
     <label>Amount each time<input data-f="amount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="$0.00" data-testid="main-income-amount"/></label></div>
     <div class="form-grid"><label>How often<select data-f="frequency" data-testid="main-income-frequency"><option value="weekly">Weekly</option><option value="biweekly">Every 2 weeks</option><option value="monthly" selected>Monthly</option><option value="once">One time</option></select></label>
     <label>Next date<input data-f="nextDate" type="date" data-testid="main-income-date"/></label></div>
+    <label class="toggle-label"><input type="checkbox" data-f="splitPart" data-testid="main-income-split"/> Second half of my anchor check</label>
     <button class="primary" type="submit" data-testid="main-income-save">SAVE MAIN INCOME</button>
     <p class="status" data-main-status></p></form>`;
 }
@@ -114,7 +196,7 @@ function flxRenderMainIncomes(){
   const listHost=$('flxMainIncomeList');if(!listHost)return;
   const anchorRow=Number(data.paycheck||0)>0?`<div class="managed-bill flx-income-row"><div class="managed-bill-main"><div><strong>Main paycheck (anchor)</strong><span>Drives the journey · ${dateText(data.payDate,{month:'short',day:'numeric'})}</span></div><b>${money(data.paycheck)}</b></div><div class="managed-bill-meta"><span>Edited in Check Details</span></div></div>`:'';
   const mains=Array.isArray(data.mainIncomes)?data.mainIncomes:[];
-  const rows=mains.map(i=>`<div class="managed-bill flx-income-row" data-testid="main-income-row"><div class="managed-bill-main"><div><strong>${escapeHTML(i.name)}</strong><span>${FLX_FREQ[i.frequency]||'Monthly'} · next ${dateText(i.nextDate,{month:'short',day:'numeric'})}</span></div><b>${money(i.amount)}</b></div><div class="managed-bill-meta"><span>Paydays count in reserves</span><div><button type="button" data-main-edit="${i.id}">Edit</button><button type="button" data-main-delete="${i.id}" class="danger-link">Delete</button></div></div></div>`).join('');
+  const rows=mains.map(i=>`<div class="managed-bill flx-income-row" data-testid="main-income-row"><div class="managed-bill-main"><div><strong>${escapeHTML(i.name)}</strong><span>${FLX_FREQ[i.frequency]||'Monthly'} · next ${dateText(i.nextDate,{month:'short',day:'numeric'})}</span></div><b>${money(i.amount)}</b></div><div class="managed-bill-meta"><span>${i.splitOf==='anchor'?'Second half of your anchor check · counts in this plan':'Paydays count in reserves'}</span><div><button type="button" data-main-edit="${i.id}">Edit</button><button type="button" data-main-delete="${i.id}" class="danger-link">Delete</button></div></div></div>`).join('');
   listHost.innerHTML=(anchorRow+rows)||'<p class="empty-copy">No main incomes yet. Your anchor check lives in Check Details; add other mains here.</p>';
 }
 document.addEventListener('submit',e=>{
@@ -123,10 +205,16 @@ document.addEventListener('submit',e=>{
   const name=f('name').value.trim(),amount=clamp(f('amount').value,0,1e9),nextDate=f('nextDate').value,frequency=f('frequency').value,id=f('id').value;
   if(!name||amount<=0||!nextDate){st.textContent='Add the main income name, amount, and next date.';return}
   flxEnsureData();const existing=id?data.mainIncomes.find(i=>i.id===id):null;
-  if(existing)Object.assign(existing,{name,amount,nextDate,frequency});else data.mainIncomes.push({id:flxId('main'),name,amount,frequency,nextDate,received:[]});
+  const isSplit=!!(f('splitPart')&&f('splitPart').checked);
+  let entry=existing;
+  if(existing)Object.assign(existing,{name,amount,nextDate,frequency});else{entry={id:flxId('main'),name,amount,frequency,nextDate,received:[]};data.mainIncomes.push(entry)}
+  /* 4.4.0.6 split paycheck: one second half per anchor check. Flagging it
+     here is what makes the plan count the full check and fund each half as
+     it lands. Unchecking clears the flag. */
+  if(isSplit){data.mainIncomes.forEach(m=>{if(m!==entry)delete m.splitOf});entry.splitOf='anchor'}else delete entry.splitOf;
   data.approvedPlan=null;
-  setRecoveryContext(existing?`Update main income: ${name}`:`Add main income: ${name}`,`${money(amount)} ${FLX_FREQ[frequency]||''} main income; next ${dateText(nextDate,{month:'short',day:'numeric'})}.`,'change');
-  save();form.reset();f('id').value='';st.textContent=existing?'Main income updated.':`${name} saved as a main income. Dexx counts its paydays in your reserves.`;
+  setRecoveryContext(existing?`Update main income: ${name}`:`Add main income: ${name}`,isSplit?`${money(amount)} second half of the anchor check; lands ${dateText(nextDate,{month:'short',day:'numeric'})}. Dexx plans the full check.`:`${money(amount)} ${FLX_FREQ[frequency]||''} main income; next ${dateText(nextDate,{month:'short',day:'numeric'})}.`,'change');
+  save();form.reset();f('id').value='';st.textContent=existing?'Main income updated.':isSplit?`${name} saved as the second half of your anchor check. Dexx plans the full check and funds each half as it lands.`:`${name} saved as a main income. Dexx counts its paydays in your reserves.`;
 });
 document.addEventListener('submit',e=>{
   const form=e.target.closest('[data-income-form]');if(!form)return;e.preventDefault();
@@ -153,13 +241,21 @@ document.addEventListener('click',e=>{
   const mdel=t.closest('[data-main-delete]');
   if(mdel){const inc=(data.mainIncomes||[]).find(i=>i.id===mdel.dataset.mainDelete);if(!inc)return;if(!confirm(`Delete ${inc.name}?`))return;data.mainIncomes=data.mainIncomes.filter(i=>i!==inc);data.approvedPlan=null;setRecoveryContext(`Delete main income: ${inc.name}`,'Main income removed.','change');save();return}
   const med=t.closest('[data-main-edit]');
-  if(med){const inc=(data.mainIncomes||[]).find(i=>i.id===med.dataset.mainEdit);const form=med.closest('.card')?.querySelector('[data-main-form]');if(!inc||!form)return;const f=k=>form.querySelector(`[data-f="${k}"]`);f('id').value=inc.id;f('name').value=inc.name;f('amount').value=inc.amount;f('frequency').value=inc.frequency;f('nextDate').value=inc.nextDate;form.scrollIntoView({behavior:'smooth',block:'center'});return}
+  if(med){const inc=(data.mainIncomes||[]).find(i=>i.id===med.dataset.mainEdit);const form=med.closest('.card')?.querySelector('[data-main-form]');if(!inc||!form)return;const f=k=>form.querySelector(`[data-f="${k}"]`);f('id').value=inc.id;f('name').value=inc.name;f('amount').value=inc.amount;f('frequency').value=inc.frequency;f('nextDate').value=inc.nextDate;if(f('splitPart'))f('splitPart').checked=!!inc.splitOf;form.scrollIntoView({behavior:'smooth',block:'center'});return}
   const ed=t.closest('[data-income-edit]');
   if(ed){const inc=data.incomes.find(i=>i.id===ed.dataset.incomeEdit);const form=ed.closest('.card')?.querySelector('[data-income-form]');if(!inc||!form)return;const f=k=>form.querySelector(`[data-f="${k}"]`);f('id').value=inc.id;f('name').value=inc.name;f('amount').value=inc.amount;f('frequency').value=inc.frequency;f('nextDate').value=inc.nextDate;form.scrollIntoView({behavior:'smooth',block:'center'});return}
   const rec=t.closest('[data-income-receive]');
-  if(rec){const inc=data.incomes.find(i=>i.id===rec.dataset.incomeReceive);if(!inc)return;const amt=clamp(rec.parentElement.querySelector('[data-receive-amount]')?.value,0,1e9);if(amt<=0)return;inc.received=(inc.received||[]).filter(r=>r.date!==rec.dataset.date);inc.received.push({date:rec.dataset.date,amount:amt});data.approvedPlan=null;setRecoveryContext(`Income received: ${inc.name}`,`${money(amt)} pooled into this payday journey.`,'change');save();return}
+  if(rec){const inc=(data.incomes||[]).find(i=>i.id===rec.dataset.incomeReceive)||(data.mainIncomes||[]).find(i=>i.id===rec.dataset.incomeReceive);if(!inc)return;const amt=clamp(rec.parentElement.querySelector('[data-receive-amount]')?.value,0,1e9);if(amt<=0)return;inc.received=(inc.received||[]).filter(r=>r.date!==rec.dataset.date);inc.received.push({date:rec.dataset.date,amount:amt});
+  /* 4.4.0.6 split paycheck: the second half is already counted in the plan,
+     so confirming it must NOT rebuild the plan — it funds the rest instead. */
+  if(inc.splitOf==='anchor'){if(typeof splitPartConfirmed==='function')splitPartConfirmed();setRecoveryContext(`Second half received: ${inc.name}`,`${money(amt)} confirmed — the rest of this check is now funded.`,'change');save();return}
+  data.approvedPlan=null;setRecoveryContext(`Income received: ${inc.name}`,`${money(amt)} pooled into this payday journey.`,'change');save();return}
   const un=t.closest('[data-income-unreceive]');
-  if(un){const inc=data.incomes.find(i=>i.id===un.dataset.incomeUnreceive);if(!inc)return;inc.received=(inc.received||[]).filter(r=>r.date!==un.dataset.date);data.approvedPlan=null;setRecoveryContext(`Income un-marked: ${inc.name}`,'Removed from this payday pool.','change');save();return}
+  if(un){const inc=(data.incomes||[]).find(i=>i.id===un.dataset.incomeUnreceive)||(data.mainIncomes||[]).find(i=>i.id===un.dataset.incomeUnreceive);if(!inc)return;inc.received=(inc.received||[]).filter(r=>r.date!==un.dataset.date);
+  /* 4.4.0.6 split paycheck: un-marking the second half rolls funding back
+     to Part 1 only. */
+  if(inc.splitOf==='anchor'){if(typeof splitPartUnconfirmed==='function')splitPartUnconfirmed();setRecoveryContext(`Second half un-marked: ${inc.name}`,'Second half no longer confirmed; funding rolled back to the first half.','change');save();return}
+  data.approvedPlan=null;setRecoveryContext(`Income un-marked: ${inc.name}`,'Removed from this payday pool.','change');save();return}
   const sc=t.closest('[data-flx-scroll]');
   if(sc)setTimeout(()=>$('flxProfileIncomes')?.scrollIntoView({behavior:'smooth',block:'start'}),160);
 });

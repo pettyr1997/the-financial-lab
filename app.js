@@ -1098,6 +1098,9 @@ function startNextPaycheckCycle(){
   data.currentBalance=0;
   data.payDate=preview.payDate;
   data.nextPayday=preview.nextPayday;
+  /* 4.4.0.6 split paycheck: keep the second half in step with the anchor
+     cycle so its next date does not go stale. */
+  if(typeof splitAdvanceNextDate==='function'){try{splitAdvanceNextDate(preview.payDate)}catch(_){}}
   data.customSavings=null;
   data.customDebt=null;
   data.approvedPlan=null;
@@ -1300,7 +1303,10 @@ function billPressureWindows(c,groups){
     const seen=new Set(),unique=[];
     bills.forEach(b=>{const k=`${b.parentId||b.id}|${b.occurrenceDate||b.date}`;if(!seen.has(k)){seen.add(k);unique.push(b)}});
     const total=unique.reduce((s,b)=>s+Number(b.amount||0),0);
-    windows.push({payday:pd,bills:unique,total,incomePerCheck,covered:incomePerCheck>0?incomePerCheck-total:null});
+    /* 4.4.0.6 split paycheck: a second-half payday brings the second half,
+       not a full check — measure that column against what actually lands. */
+    const colIncome=(typeof splitPartAmountOn==='function')?(splitPartAmountOn(pd)||incomePerCheck):incomePerCheck;
+    windows.push({payday:pd,bills:unique,total,incomePerCheck:colIncome,covered:colIncome>0?colIncome-total:null});
     prev=pd;
   });
   return windows;
@@ -1371,7 +1377,10 @@ function renderSmartBills(c){
   }
 }
 
-function forecastPaydays(startDate,endDate){
+/* Anchor-schedule paydays only — used where the math counts CHECKS (income
+   forecast), not deposits. A split check is one check, so its second half
+   must not inflate a 30-day income estimate. */
+function forecastAnchorPaydays(startDate,endDate){
   const start=dateAtNoon(startDate),end=dateAtNoon(endDate);if(!start||!end)return [];
   let anchor=dateAtNoon(data.nextPayday)||dateAtNoon(data.payDate)||dateAtNoon(new Date());
   if(!anchor)return [];
@@ -1382,6 +1391,15 @@ function forecastPaydays(startDate,endDate){
   const out=[];guard=0;
   for(let d=anchor;d&&d<=end&&guard++<80;d=shiftPayday(d,1)){if(d>=start)out.push(iso(d))}
   return [...new Set(out)];
+}
+function forecastPaydays(startDate,endDate){
+  const out=forecastAnchorPaydays(startDate,endDate);
+  /* 4.4.0.6 split paycheck: the second half lands on its own payday — show
+     it on calendars, the pressure strip, and the upcoming-events list. */
+  if(typeof splitPartOccurrences==='function'){
+    try{splitPartOccurrences(startDate,endDate).forEach(d=>{if(d&&!out.includes(d))out.push(d)})}catch(_){}
+  }
+  return [...new Set(out)].sort();
 }
 function confirmedPaycheckHistory(){
   const raw=Array.isArray(data.paycheckHistory)?data.paycheckHistory:[];
@@ -1414,7 +1432,9 @@ function cashFlowLearningState(){
 function forecastWindow(days=30){
   const start=dateAtNoon(new Date()),end=new Date(start.getTime()+days*86400000);
   const bills=billOccurrences(start,end).filter(b=>!b.paid);
-  const paydays=forecastPaydays(start,end).filter(date=>date>iso(start));
+  /* 4.4.0.6 split paycheck: the 30-day income estimate counts CHECKS, not
+     deposits — a split check is one check, so use the anchor schedule. */
+  const paydays=(typeof forecastAnchorPaydays==='function'?forecastAnchorPaydays(start,end):forecastPaydays(start,end)).filter(date=>date>iso(start));
   const billTotal=bills.reduce((sum,b)=>sum+Number(b.amount||0),0);
   const learning=cashFlowLearningState();
   const incomePerCheck=learning.learned?learning.average:null;
@@ -1557,7 +1577,7 @@ function renderReports(c){
   const cycleEnd=c.expenseCycleEnd||c.nextPay;
 
   $('reportCycleLabel').textContent=`${dateText(cycleStart,{month:'short',day:'numeric'})} – ${dateText(cycleEnd,{month:'short',day:'numeric'})}`;
-  $('reportPaycheck').textContent=money(c.paycheck||0);
+  $('reportPaycheck').textContent=money(c.combinedPaycheck||c.paycheck||0);
   $('reportProtected').textContent=money(protectedTotal);
   $('reportSpent').textContent=money(c.expenseTotal||0);
   $('reportSafe').textContent=money(c.safeToSpend||0);
@@ -1906,6 +1926,9 @@ function householdPaydayCount(dueDate,today,nextPay,freqDays,includeCurrentCheck
   const due=dateAtNoon(dueDate),start=dateAtNoon(today);
   if(!due||!start)return count;
   (Array.isArray(data.mainIncomes)?data.mainIncomes:[]).forEach(m=>{
+    /* 4.4.0.6 split paycheck: the second half is the same check as the
+       anchor, not a second paycheck — it counts once, with the anchor. */
+    if(m&&m.splitOf==='anchor')return;
     const base=dateAtNoon(m.nextDate);if(!base)return;
     const f=m.frequency||'monthly';
     if(f==='once'){if(base>start&&base<=due)count+=1;return}
@@ -1928,7 +1951,7 @@ function reserveTargets(upcomingBills,today,nextPay,freqDays){
   }).filter(b=>b.remainingToFund>0.004)
 }
 function paycheckPlan(){
-  const paycheck=clamp(data.paycheck,0,1e9), balance=clamp(data.currentBalance,0,1e9), available=paycheck+balance;
+  const paycheck=clamp(data.paycheck,0,1e9), balance=clamp(data.currentBalance,0,1e9);
   const today=dateAtNoon(data.payDate)||new Date();today.setHours(12,0,0,0);
   const freqDays=data.profile?.payFrequency==='biweekly'?14:data.profile?.payFrequency==='monthly'?30:7;
   // 4.1.9.2: when no active check/next-payday fields exist, anchor the
@@ -1941,6 +1964,12 @@ function paycheckPlan(){
   }
   // 4.2.0.0 Multiple incomes: received secondary income pools into this journey.
   const pooledIncome=(typeof pooledIncomeForCycle==='function')?pooledIncomeForCycle(today,nextPay):0;
+  /* 4.4.0.6 split paycheck: the second half of one check counts toward this
+     cycle's income — it is the same paycheck, not side income. */
+  const splitPart=(typeof splitPartForCycle==='function')?splitPartForCycle(today,nextPay):0;
+  const splitDateIso=(typeof splitPartLandingDate==='function')?splitPartLandingDate(today,nextPay):null;
+  const splitDate=splitDateIso?dateAtNoon(splitDateIso):null;
+  const combinedPaycheck=paycheck+splitPart, available=combinedPaycheck+balance;
   const reserveDays=clamp(data.profile?.reserveDays||14,7,31);
   const reserveEnd=new Date(nextPay.getTime()+reserveDays*86400000);
   // 4.0.6: Dexx plans across several future paychecks, not only the short reserve window.
@@ -1957,12 +1986,20 @@ function paycheckPlan(){
   const dueNow=dueNowBills.reduce((s,b)=>s+Number((b.currentCheckDue ?? b.amount) || 0),0);
   const upcomingTotal=upcomingBills.reduce((s,b)=>s+Number(b.amount||0),0);
   const reserveTarget=upcomingBills.reduce((s,b)=>s+Number(b.currentCheckReserve||0),0);
-  const desiredSavings=Math.max(clamp(data.saveAmount,0,1e9),paycheck*clamp(data.savingsRate,0,100)/100);
+  const desiredSavings=Math.max(clamp(data.saveAmount,0,1e9),combinedPaycheck*clamp(data.savingsRate,0,100)/100);
   const savingsGoalTarget=savingsTarget(),managedDebtTotal=totalDebtBalance(),targetDebt=debtTarget();const desiredDebt=Math.min(clamp(data.debtGoal,0,1e9),managedDebtTotal);
 
   // Priority order: immediate bills -> future-bill reserve -> savings -> extra debt -> safe spending.
   let remaining=available+pooledIncome;
-  const payNow=Math.min(remaining,dueNow);remaining-=payNow;
+  /* 4.4.0.6 split paycheck: bills due before the second half lands are
+     covered by Part 1 + balance + already-received income only — the plan
+     never spends the second half before it arrives. */
+  const dueBeforeSplit=splitDate?dueNowBills.filter(b=>dateAtNoon(b.date)<splitDate).reduce((s,b)=>s+Number((b.currentCheckDue??b.amount)||0),0):0;
+  const dueAfterSplit=dueNow-dueBeforeSplit;
+  const inHand=paycheck+balance+pooledIncome;
+  const payNowEarly=Math.min(inHand,dueBeforeSplit);
+  const payNowLate=Math.min(Math.max(0,remaining-payNowEarly),dueAfterSplit);
+  const payNow=payNowEarly+payNowLate;remaining-=payNow;
   const reserve=Math.min(remaining,reserveTarget);remaining-=reserve;
   const recommendedSavings=Math.min(remaining,desiredSavings);
   const chosenSavings=data.customSavings===null?recommendedSavings:Math.min(clamp(data.customSavings,0,1e9),remaining);
@@ -1976,7 +2013,7 @@ function paycheckPlan(){
   const setAside=Math.min(remaining,clamp(data.unexpectedFund,0,1e9));remaining-=setAside;
   const expenseCycleStart=dateAtNoon(data.payDate)||today,expenseCycleEnd=dateAtNoon(data.nextPayday)||nextPay;
   const safeBeforeExpenses=Math.max(0,remaining),currentExpenses=expensesForCycle(expenseCycleStart,expenseCycleEnd),expenseTotal=currentExpenses.reduce((s,x)=>s+Number(x.amount||0),0),fundTotal=currentExpenses.filter(x=>x.source==='unexpected').reduce((s,x)=>s+Number(x.amount||0),0),fundCovered=Math.min(fundTotal,setAside),fundRemaining=Math.max(0,setAside-fundTotal),safeToSpend=Math.max(0,safeBeforeExpenses-expenseTotal+fundCovered),overspent=Math.max(0,expenseTotal-fundCovered-safeBeforeExpenses);
-  const rememberedReserve=[...dueNowBills,...upcomingBills].reduce((s,b)=>s+Number(b.alreadyProtected||0),0);return {paycheck,balance,available:available+pooledIncome,pooledIncome,today,nextPay,reserveEnd,planningEnd,dueNowBills,upcomingBills,laterBills,dueNow,upcomingTotal,reserveTarget,rememberedReserve,desiredSavings,savingsGoalTarget,desiredDebt,targetDebt,managedDebtTotal,payNow,reserve,savings:chosenSavings,debtPayment:chosenDebt,expenseCycleStart,expenseCycleEnd,safeBeforeExpenses,currentExpenses,expenseTotal,fundTotal,fundCovered,fundRemaining,setAside,overspent,safeToSpend,shortfall:Math.max(0,dueNow-payNow),reserveShortfall:Math.max(0,reserveTarget-reserve)};
+  const rememberedReserve=[...dueNowBills,...upcomingBills].reduce((s,b)=>s+Number(b.alreadyProtected||0),0);return {paycheck,balance,splitPart,splitPartDate:splitDateIso||'',combinedPaycheck,available:available+pooledIncome,pooledIncome,today,nextPay,reserveEnd,planningEnd,dueNowBills,upcomingBills,laterBills,dueNow,upcomingTotal,reserveTarget,rememberedReserve,desiredSavings,savingsGoalTarget,desiredDebt,targetDebt,managedDebtTotal,payNow,reserve,savings:chosenSavings,debtPayment:chosenDebt,expenseCycleStart,expenseCycleEnd,safeBeforeExpenses,currentExpenses,expenseTotal,fundTotal,fundCovered,fundRemaining,setAside,overspent,safeToSpend,shortfall:Math.max(0,dueNow-payNow),reserveShortfall:Math.max(0,reserveTarget-reserve)};
 }
 function calc(){const p=paycheckPlan(),bills=[...p.dueNowBills,...p.upcomingBills],billTotal=bills.filter(b=>!b.paid).reduce((s,b)=>s+Number(b.amount||0),0);let score=35;if(p.paycheck>0)score+=15;if(bills.length)score+=10;if(p.savings>0)score+=15;if(p.shortfall===0&&p.paycheck>0)score+=15;if(p.reserveShortfall===0&&p.upcomingBills.length)score+=5;if(data.approvedPlan)score+=5;const missionDone=Object.values(data.missions).filter(Boolean).length;return {...p,bills,billTotal,cash:p.safeToSpend,score:Math.min(score,100),progress:Math.round(missionDone/4*100),missionDone}}
 // Save-hardening (beta fix): a throwing device-storage write (private
@@ -2060,7 +2097,7 @@ function commandCenterPlan(c){
 }
 function planFundingStatus(plan){
   if(!plan)return 'none';
-  if(plan.fundingStatus==='planned'||plan.fundingStatus==='funded')return plan.fundingStatus;
+  if(plan.fundingStatus==='planned'||plan.fundingStatus==='funded'||plan.fundingStatus==='partly-funded')return plan.fundingStatus;
   const payDate=dateAtNoon(plan.payDate||data.payDate),today=dateAtNoon(new Date());
   return payDate&&today&&payDate>today?'planned':'funded';
 }
@@ -2080,10 +2117,73 @@ function normalizeApprovedPlanFunding(){
   }
   syncApprovedPlanHistory(plan);localStorage.setItem(STORAGE_KEY,JSON.stringify(data));return true;
 }
+/* 4.4.0.6 split paycheck — funding follows landing.
+   A split check funds in two stages: Part 1's share when it lands, the rest
+   when Part 2 lands. Funding status goes planned -> partly-funded -> funded.
+   Money is never funded from a half that has not arrived yet. */
+function splitFundingInfo(plan){
+  if(!plan||!plan.splitCheck)return null;
+  const sc=plan.splitCheck;
+  const part1=Math.max(0,Number(sc.part1)||0),part2=Math.max(0,Number(sc.part2)||0);
+  const total=part1+part2;if(total<=0)return null;
+  const m=(typeof splitPartMain==='function')?splitPartMain():null;
+  const part2Landed=m?(typeof splitPartReceivedInCycle==='function'?splitPartReceivedInCycle(plan.payDate,plan.nextPayday):false):false;
+  return {part1,part2,part2Date:sc.part2Date||'',part2Landed,share1:part1/total};
+}
+function fundPlanShare(plan,fraction){
+  const reserveShare=Math.round(Number(plan.reserve||0)*fraction*100)/100;
+  const savingsShare=Math.round(Number(plan.savings||0)*fraction*100)/100;
+  const rc=applyReserveContributions({reserve:reserveShare,upcomingBills:Array.isArray(plan.reserveDetails)?plan.reserveDetails:[]});
+  const sc=applySavingsContributions(savingsShare);
+  return {reserveContributions:rc,savingsContributions:sc};
+}
+function fundPlanRemainder(plan){
+  const fundedReserve=(plan.reserveContributions||[]).reduce((s,x)=>s+Number(x.amount||0),0);
+  const fundedSavings=(plan.savingsContributions||[]).reduce((s,x)=>s+Number(x.amount||0),0);
+  const reserveLeft=Math.max(0,Math.round((Number(plan.reserve||0)-fundedReserve)*100)/100);
+  const savingsLeft=Math.max(0,Math.round((Number(plan.savings||0)-fundedSavings)*100)/100);
+  const rc=applyReserveContributions({reserve:reserveLeft,upcomingBills:Array.isArray(plan.reserveDetails)?plan.reserveDetails:[]});
+  const sc=applySavingsContributions(savingsLeft);
+  return {reserveContributions:rc,savingsContributions:sc};
+}
 function fundApprovedPlan(){
-  const plan=data.approvedPlan;if(!plan||planFundingStatus(plan)!=='planned')return false;
+  const plan=data.approvedPlan;if(!plan)return false;
+  const status=planFundingStatus(plan);
+  if(status==='funded')return false;
   const payDate=dateAtNoon(plan.payDate||data.payDate),today=dateAtNoon(new Date());
   if(payDate&&today&&today<payDate)return false;
+  const split=splitFundingInfo(plan);
+  const moneySum=list=>(list||[]).reduce((sum,x)=>sum+Number(x.amount||0),0);
+  if(split){
+    if(status==='planned'&&split.part2Landed){
+      /* Both halves have landed by the time Part 1 is reconciled — fund all. */
+      const share=fundPlanShare(plan,1);
+      plan.reserveContributions=share.reserveContributions;plan.savingsContributions=share.savingsContributions;
+      plan.fundingStatus='funded';plan.fundedAt=new Date().toISOString();
+      syncApprovedPlanHistory(plan);
+      setRecoveryContext('Confirm paycheck landed',`${money(plan.paycheck||0)} paycheck activated (both halves landed). ${money(moneySum(plan.reserveContributions))} funded in bill reserves and ${money(moneySum(plan.savingsContributions))} recorded to savings.`,'approval');
+      save();return true;
+    }
+    if(status==='planned'){
+      const share=fundPlanShare(plan,split.share1);
+      plan.reserveContributions=share.reserveContributions;plan.savingsContributions=share.savingsContributions;
+      plan.fundingStatus='partly-funded';plan.fundedAt=new Date().toISOString();
+      syncApprovedPlanHistory(plan);
+      setRecoveryContext('Confirm paycheck landed',`First half of your check funded: ${money(moneySum(plan.reserveContributions))} to bill reserves and ${money(moneySum(plan.savingsContributions))} to savings. The second half lands ${split.part2Date?dateText(split.part2Date,{month:'short',day:'numeric'}):'soon'} — Dexx funds the rest when it arrives.`,'approval');
+      save();return true;
+    }
+    if(status==='partly-funded'){
+      if(!split.part2Landed)return false;
+      const share=fundPlanRemainder(plan);
+      plan.reserveContributions=[...(plan.reserveContributions||[]),...share.reserveContributions];
+      plan.savingsContributions=[...(plan.savingsContributions||[]),...share.savingsContributions];
+      plan.fundingStatus='funded';plan.fundedAt=new Date().toISOString();
+      syncApprovedPlanHistory(plan);
+      setRecoveryContext('Confirm paycheck landed',`Second half of your check funded: ${money(moneySum(share.reserveContributions))} to bill reserves and ${money(moneySum(share.savingsContributions))} to savings. Your split check is fully funded.`,'approval');
+      save();return true;
+    }
+    return false;
+  }
   const reserveContributions=applyReserveContributions({reserve:Number(plan.reserve)||0,upcomingBills:Array.isArray(plan.reserveDetails)?plan.reserveDetails:[]});
   const savingsContributions=applySavingsContributions(Number(plan.savings)||0);
   plan.reserveContributions=reserveContributions;
@@ -2092,6 +2192,41 @@ function fundApprovedPlan(){
   plan.fundedAt=new Date().toISOString();
   syncApprovedPlanHistory(plan);
   setRecoveryContext('Confirm paycheck landed',`${money(plan.paycheck||0)} paycheck activated. ${money(reserveContributions.reduce((sum,x)=>sum+Number(x.amount||0),0))} funded in bill reserves and ${money(savingsContributions.reduce((sum,x)=>sum+Number(x.amount||0),0))} recorded to savings.`,'approval');
+  save();
+  return true;
+}
+/* 4.4.0.6 split paycheck: called when the second half is marked received.
+   The plan already counts the full check, so this does NOT rebuild it — it
+   records the combined actual amount for income learning and funds the
+   second half's share (only if Part 1 is already funded; otherwise funding
+   waits for Part 1's check-in, which funds everything since both halves
+   have then landed). */
+function splitPartConfirmed(){
+  const plan=data.approvedPlan;if(!plan)return false;
+  const m=(typeof splitPartMain==='function')?splitPartMain():null;if(!m)return false;
+  const part2Received=(typeof splitPartReceivedAmount==='function')?splitPartReceivedAmount(plan.payDate,plan.nextPayday):0;
+  const part1Actual=Number(plan.actualPaycheck||plan.paycheck)||0;
+  plan.actualPaycheck=Math.round((part1Actual+part2Received)*100)/100;
+  syncApprovedPlanHistory(plan);
+  if(planFundingStatus(plan)==='partly-funded')fundApprovedPlan();
+  save();
+  return true;
+}
+/* 4.4.0.6 split paycheck: called when the second half is un-marked. Rolls
+   all funding back, then re-funds only Part 1's share (Part 2 no longer
+   landed). */
+function splitPartUnconfirmed(){
+  const plan=data.approvedPlan;if(!plan)return false;
+  /* Only re-fund Part 1's share if Part 1 was already funded. If the plan
+     is still 'planned' (Part 1 never confirmed), un-marking Part 2 must not
+     fund anything — funding waits for Part 1's check-in. */
+  const wasFunded=planFundingStatus(plan)==='funded'||planFundingStatus(plan)==='partly-funded';
+  rollbackReserveContributions(plan);
+  plan.reserveContributions=[];plan.savingsContributions=[];
+  plan.fundingStatus='planned';plan.fundedAt='';
+  plan.actualPaycheck=Number(plan.plannedPaycheck??plan.paycheck)||0;
+  syncApprovedPlanHistory(plan);
+  if(wasFunded)fundApprovedPlan();
   save();
   return true;
 }
@@ -2130,6 +2265,13 @@ function updatePlannedSnapshotFromActual(actual,preview){
     shortfall:Number(preview.shortfall)||0,
     bills:preview.dueNowBills.map(b=>({parentId:b.parentId||b.id,occurrenceDate:b.occurrenceDate||b.date,name:b.name,amount:b.amount,date:b.date,priority:b.priority,alreadyProtected:b.alreadyProtected,currentCheckDue:b.currentCheckDue}))
   });
+  /* 4.4.0.6 split paycheck: the combined actual adds the second half already
+     received this cycle — Part 1's actual alone understates the check for
+     income learning. */
+  if(typeof splitPartReceivedAmount==='function'){
+    const part2=splitPartReceivedAmount(plan.payDate,plan.nextPayday);
+    if(part2>0)plan.actualPaycheck=Math.round((Number(plan.actualPaycheck||0)+part2)*100)/100;
+  }
   syncApprovedPlanHistory(plan);
   return true;
 }
@@ -2161,6 +2303,15 @@ function activateReconciledPayday(actual,preview){
 function executionTasks(plan,c){
   if(!plan)return [];
   const tasks=[];
+  /* 4.4.0.6 split paycheck: confirming the second half is a checklist step —
+     it is what funds the rest of the plan. Shown once the first half is
+     funded and the second half's day has arrived. */
+  if(plan.splitCheck&&plan.fundingStatus==='partly-funded'){
+    const part2Date=plan.splitCheck.part2Date||'';
+    const part2Received=(typeof splitPartReceivedInCycle==='function')?splitPartReceivedInCycle(plan.payDate,plan.nextPayday):false;
+    const due=part2Date&&dateAtNoon(new Date())>=dateAtNoon(part2Date);
+    if(!part2Received&&due)tasks.push({id:'split-part2',kind:'split',title:`Confirm second half landed — ${money(Number(plan.splitCheck.part2)||0)}`,amount:Number(plan.splitCheck.part2)||0,note:`Second half of your check · due ${dateText(part2Date,{month:'short',day:'numeric'})} · confirming it funds the rest of this plan`,auto:false,action:'CONFIRM RECEIVED'});
+  }
   (plan.bills||[]).forEach((b,i)=>tasks.push({id:`bill-${i}`,kind:'bill',title:`Pay ${b.name||'bill'}`,amount:Number(b.currentCheckDue??b.amount)||0,note:`Due ${dateText(b.date,{month:'short',day:'numeric'})}`,auto:false,action:'CONFIRM PAID'}));
   if(Number(plan.reserve)>0)tasks.push({id:'reserve',kind:'reserve',title:'Protect future bills',amount:Number(plan.reserve),note:'Reserve Memory locked this in when the plan was approved.',auto:true});
   if(Number(plan.savings)>0)tasks.push({id:'savings',kind:'savings',title:'Move money to savings',amount:Number(plan.savings),note:plan.savingsContributions?.[0]?.name?`Recorded toward ${plan.savingsContributions[0].name} when approved.`:'Recorded to savings when approved.',auto:true});
@@ -2481,11 +2632,17 @@ function moneyJourneyState(c){
   const nextPay=dateAtNoon(plan?.nextPayday||data.nextPayday);
   const funding=planFundingStatus(plan);
   const funded=!!plan&&funding==='funded';
+  const partlyFunded=!!plan&&funding==='partly-funded';
+  /* 4.4.0.6 split paycheck: the second half has its own landing. */
+  const splitMain=(typeof splitPartMain==='function')?splitPartMain():null;
+  const splitDate=splitMain?dateAtNoon(splitMain.nextDate):null;
+  const splitReceived=splitMain?(Array.isArray(splitMain.received)?splitMain.received:[]).find(r=>{const d=dateAtNoon(r.date);return !!(d&&payDate&&nextPay&&d>=payDate&&d<nextPay)}):null;
+  const splitPartDue=!!(partlyFunded&&splitMain&&splitDate&&today&&today>=splitDate&&!splitReceived);
   const beforePayday=!!(plan&&payDate&&today<payDate);
   const paydayReady=!!(plan&&payDate&&today>=payDate&&!funded);
   const preview=!!(paydayReconciliationPreview&&plan&&paydayReconciliationPreview.planId===plan.id);
   const cycleEnded=!!(funded&&nextPay&&today>=nextPay);
-  const liveRunway=!!(funded&&!cycleEnded);
+  const liveRunway=!!((funded||partlyFunded)&&!cycleEnded);
   const protectedTotal=Math.max(0,Number(plan?.protected||0));
   const actual=Number(plan?.actualPaycheck||plan?.paycheck||0);
   const planned=Number((plan?.plannedPaycheck??plan?.paycheck)||0);
@@ -2496,23 +2653,33 @@ function moneyJourneyState(c){
   add('plan','Payday plan',plan?`${money(planned)} plan approved for ${payDate?dateText(payDate,{month:'short',day:'numeric'}):'payday'}.`:'Build and approve the next paycheck plan.',plan?'done':readiness.requiredReady?'current':'locked',plan?'COMPLETE':readiness.requiredReady?'CURRENT':'LOCKED');
 
   let landingState='locked',landingBadge='LOCKED',landingNote='Unlocks after a payday plan is approved.';
-  if(plan&&funded){landingState='done';landingBadge='COMPLETE';landingNote=`${money(actual)} paycheck confirmed as landed.`}
+  if(plan&&(funded||partlyFunded)){landingState='done';landingBadge='COMPLETE';landingNote=partlyFunded?`First half ${money(actual)} confirmed as landed.`:`${money(actual)} paycheck confirmed as landed.`}
   else if(plan&&preview){landingState='done';landingBadge='COMPLETE';landingNote=`${money(paydayReconciliationPreview.actual)} entered as the actual deposit.`}
   else if(plan&&beforePayday){landingNote=`Waiting for ${dateText(payDate,{month:'short',day:'numeric'})}. Planned money stays blocked until then.`;landingBadge=dateText(payDate,{month:'short',day:'numeric'}).toUpperCase()}
   else if(paydayReady){landingState='current';landingBadge='READY NOW';landingNote='Enter the amount that actually reached your account.'}
   add('landing','Paycheck lands',landingNote,landingState,landingBadge);
 
+  /* 4.4.0.6 split paycheck: the second half lands on its own day. Only
+     added when a split check exists — single-earner journeys keep 7 steps. */
+  if(splitMain){
+    let s2State='locked',s2Badge=splitDate?dateText(splitDate,{month:'short',day:'numeric'}).toUpperCase():'LOCKED',s2Note=splitDate?`Second half lands ${dateText(splitDate,{month:'short',day:'numeric'})}. The plan already counts it; funding follows when it lands.`:'Second half of your check.';
+    if(splitReceived){s2State='done';s2Badge='COMPLETE';s2Note=`Second half ${money(splitReceived.amount)} confirmed as landed.`}
+    else if(splitPartDue){s2State='current';s2Badge='READY NOW';s2Note=`Second half landed ${dateText(splitDate,{month:'short',day:'numeric'})}. Confirm it so Dexx funds the rest.`}
+    add('landing2','Second half lands',s2Note,s2State,s2Badge);
+  }
+
   let reconcileState='locked',reconcileBadge='LOCKED',reconcileNote='Unlocks after the actual paycheck amount is entered.';
   if(funded){reconcileState='done';reconcileBadge='COMPLETE';reconcileNote=`Actual vs. planned paycheck was reconciled before funding${Number(plan?.paycheckVariance||0)?` · ${Number(plan.paycheckVariance)>0?'+':''}${money(Number(plan.paycheckVariance))} variance`:''}.`}
+  else if(splitPartDue){reconcileState='current';reconcileBadge='CURRENT';reconcileNote='First half reconciled. Confirm the second half when it lands to finish.'}
   else if(preview){reconcileState='current';reconcileBadge='CURRENT';reconcileNote='Review Dexx’s recalculated protection and safe-to-spend before activation.'}
   add('reconcile','Confirm what actually landed',reconcileNote,reconcileState,reconcileBadge);
 
-  add('protect','Protect the money',funded?`${money(protectedTotal)} in approved protection is now funded.`:'Reserve, savings, bills, and debt moves stay scheduled until reconciliation is approved.',funded?'done':'locked',funded?'COMPLETE':'LOCKED');
+  add('protect','Protect the money',funded?`${money(protectedTotal)} in approved protection is now funded.`:partlyFunded?`First half's protection is funded; the rest funds when the second half lands.`:'Reserve, savings, bills, and debt moves stay scheduled until reconciliation is approved.',funded?'done':partlyFunded?'current':'locked',funded?'COMPLETE':partlyFunded?'PARTLY FUNDED':'LOCKED');
   add('runway','Safe-to-spend goes live',cycleEnded?'This paycheck runway is complete.':liveRunway?`${money(c.safeToSpend)} remains safe through ${nextPay?dateText(nextPay,{month:'short',day:'numeric'}):'next payday'}.`:'Unlocks only after the real paycheck is reconciled and protection is funded.',cycleEnded?'done':liveRunway?'current':'locked',cycleEnded?'COMPLETE':liveRunway?'ACTIVE':'LOCKED');
   add('next','Next payday cycle',cycleEnded?'Review the finished cycle and build the next paycheck plan.':nextPay?`Upcoming ${dateText(nextPay,{month:'short',day:'numeric'})}. The next cycle stays blocked until this one reaches payday.`:'Dexx will schedule the next cycle after payday dates are known.',cycleEnded?'current':'locked',cycleEnded?'CURRENT':nextPay?dateText(nextPay,{month:'short',day:'numeric'}).toUpperCase():'LOCKED');
 
   const current=steps.find(x=>x.state==='current')||steps.find(x=>x.state==='locked')||steps[steps.length-1];
-  return {steps,current,plan,payDate,nextPay,funded,beforePayday,paydayReady,preview,cycleEnded,liveRunway,readiness};
+  return {steps,current,plan,payDate,nextPay,funded,partlyFunded,beforePayday,paydayReady,preview,cycleEnded,liveRunway,readiness};
 }
 function renderMoneyJourney(c){
   const card=$('moneyJourneyCard'),host=$('moneyJourneyList'),action=$('moneyJourneyAction');
@@ -2533,6 +2700,8 @@ function renderMoneyJourney(c){
   else if(!j.plan&&!c.paycheck){action.textContent='ENTER YOUR CHECK';action.dataset.go='budget';action.dataset.journeyScroll='check';set('moneyJourneyNextTitle','Your main check is missing');set('moneyJourneyNextText','Your bills and other incomes are saved, but Dexx cannot build a plan without your main paycheck amount. Enter it and the plan builds from what you already entered.')}
   else if(!j.plan){action.textContent='BUILD PAYDAY PLAN';action.dataset.go='budget';action.dataset.journeyScroll='plan'}
   else if(j.beforePayday){action.textContent=`PAYCHECK LANDS ${dateText(j.payDate,{month:'short',day:'numeric'}).toUpperCase()}`;action.disabled=true}
+  else if(j.partlyFunded&&j.current?.id==='landing2'){action.textContent='CONFIRM SECOND HALF';action.dataset.go='budget';action.dataset.journeyScroll='incomes'}
+  else if(j.partlyFunded){action.textContent='OPEN PAYDAY';action.dataset.go='budget';action.dataset.journeyScroll='execution'}
   else if(!j.funded){action.textContent=j.preview?'REVIEW RECONCILIATION':'CONFIRM ACTUAL PAYCHECK';action.dataset.go='budget';action.dataset.journeyScroll='execution'}
   else if(j.cycleEnded){action.textContent='START NEXT PAYCHECK';action.dataset.go='budget';action.dataset.journeyScroll='next'}
   else{action.textContent='OPEN PAYDAY';action.dataset.go='budget';action.dataset.journeyScroll='execution'}
@@ -2713,9 +2882,17 @@ function renderPlanMainIncomes(c){
   if(Number(data.paycheck||0)>0)rows.push(`<div class="plan-main-row"><div><strong>Main paycheck (anchor)</strong><small>${dateText(data.payDate,{month:'short',day:'numeric'})}</small></div><b>${money(data.paycheck)}</b></div>`);
   (Array.isArray(data.mainIncomes)?data.mainIncomes:[]).forEach(m=>{
     const received=(Array.isArray(m.received)?m.received:[]).find(r=>inWindow(r.date));
+    if(m.splitOf==='anchor'){
+      if(received)rows.push(`<div class="plan-main-row received"><div><strong>${escapeHTML(m.name)}</strong><small>Second half of your check · received ${dateText(received.date,{month:'short',day:'numeric'})} · counts in this plan</small></div><b>${money(m.amount)}</b></div>`);
+      else rows.push(`<div class="plan-main-row"><div><strong>${escapeHTML(m.name)}</strong><small>Second half of your check · lands ${dateText(m.nextDate,{month:'short',day:'numeric'})} · counts in this plan</small></div><b>${money(m.amount)}</b></div>`);
+      return;
+    }
     if(received)rows.push(`<div class="plan-main-row received"><div><strong>${escapeHTML(m.name)}</strong><small>Received ${dateText(received.date,{month:'short',day:'numeric'})} · pooled into this plan</small></div><b>${money(m.amount)}</b></div>`);
     else rows.push(`<div class="plan-main-row"><div><strong>${escapeHTML(m.name)}</strong><small>Expected ${dateText(m.nextDate,{month:'short',day:'numeric'})} · not funded yet</small></div><b>${money(m.amount)}</b></div>`);
   });
+  /* 4.4.0.6 split paycheck: show the full check (both parts) so the plan
+     reads as one paycheck, not two incomes. */
+  if(c&&Number(c.splitPart||0)>0)rows.push(`<div class="plan-main-row"><div><strong>Full check (both parts)</strong><small>Part 1 + second half · planned together</small></div><b>${money(Number(c.combinedPaycheck||0))}</b></div>`);
   host.innerHTML=rows.length?`<div class="section-head"><span>MAIN INCOMES</span></div>`+rows.join(''):'';
 }
 var slHomeDayMap={};
@@ -2773,7 +2950,7 @@ function render(){reconcileExecutionState();const c=calc(),hour=new Date().getHo
   ['paycheck','currentBalance','saveAmount','debtAmount','debtGoal','savingsRate'].forEach(id=>{if($(id))$(id).value=data[id]||(id==='savingsRate'?10:'')});if($('payDate'))$('payDate').value=iso(dateAtNoon(data.payDate)||new Date());if($('nextPayday'))$('nextPayday').value=iso(dateAtNoon(data.nextPayday))||'';
   if($('planPayNow')){const d=commandCenterPlan(c);$('planPayNow').textContent=money(d.payNow);$('planReserve').textContent=money(d.reserve);$('planSavings').textContent=money(d.savings);$('planDebt').textContent=money(d.debtPayment);$('planSpend').textContent=money(d.safeToSpend);$('planStatus').textContent=d.shortfall?'Needs attention':data.approvedPlan?'Approved · executing':d.paycheck?'Plan ready':'Ready';$('dexxPlanText').textContent=recommendation(d);const total=d.paycheck||d.available||1;[['allocBills',d.payNow],['allocReserve',d.reserve],['allocSavings',d.savings],['allocDebt',d.debtPayment],['allocFund',d.setAside],['allocSpend',d.safeToSpend]].forEach(([id,val])=>$(id).style.width=`${Math.max(0,val/total*100)}%`);allocationRows(d);renderBillCoverage(d);$('customSavings').value=data.customSavings??'';$('customDebt').value=data.customDebt??'';$('unexpectedFund').value=data.unexpectedFund||'';const step=!c.paycheck?1:!c.bills.length?2:!data.approvedPlan?4:5;$('workflowStatus').textContent=`Step ${step} of 5`;$('workflowCopy').textContent=step===1?'Enter your check and payday dates.':step===2?'Add and confirm every bill coming before and after payday.':step===4?'Review Dexx’s recommendation and adjust only if needed.':'Plan approved. Track your spending until next payday.';document.querySelectorAll('.step-track i').forEach((x,i)=>x.classList.toggle('active',i<step));const ex=experiment(c);$('experimentTitle').textContent=ex.title;$('experimentText').textContent=ex.text;$('experimentBar').style.width=`${ex.progress}%`;$('experimentProgress').textContent=`${ex.progress}% complete`;renderPlanMainIncomes(c);renderHistory()}}
 function show(id){document.body.dataset.view=id;document.body.classList.remove('front-door-active');document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===id));document.querySelectorAll('.bottom-nav button').forEach(b=>b.classList.toggle('active',b.dataset.go===id));history.replaceState(null,'','#'+id);scrollTo({top:0,behavior:'smooth'})}
-document.addEventListener('click',e=>{const go=e.target.closest('[data-go]');if(document.body.classList.contains('front-door-active'))return;if(go){e.preventDefault();show(go.dataset.go);const target=go.dataset.journeyScroll;if(target)setTimeout(()=>{const el=target==='execution'?$('paydayExecutionMode'):target==='next'?document.querySelector('.next-paycheck-launchpad'):target==='check'?$('budgetForm'):document.querySelector('.paycheck-planner');rbReveal(el);el?.scrollIntoView({behavior:'smooth',block:'start'});if(target==='check')$('paycheck')?.focus()},120)}const q=e.target.closest('[data-question]');if(q){const c=calc(),answers={score:`Your score is ${c.score}. Cover immediate bills, protect ${money(c.savings)} in savings, and stay within ${money(c.safeToSpend)}.`,spending:`Your safe-to-spend amount is ${money(c.safeToSpend)} through ${dateText(c.nextPay,{month:'short',day:'numeric'})}.`,challenge:experiment(c).text,saving:`I recommend ${money(c.savings)} this payday${c.savingsGoalTarget?` toward ${c.savingsGoalTarget.name}`:''}. Increase it only after immediate and upcoming bills are protected.`};dexxAsk(q.firstChild.textContent.trim(),answers[q.dataset.question])}});
+document.addEventListener('click',e=>{const go=e.target.closest('[data-go]');if(document.body.classList.contains('front-door-active'))return;if(go){e.preventDefault();show(go.dataset.go);const target=go.dataset.journeyScroll;if(target)setTimeout(()=>{const el=target==='execution'?$('paydayExecutionMode'):target==='next'?document.querySelector('.next-paycheck-launchpad'):target==='check'?$('budgetForm'):target==='incomes'?$('incomeCycleCard'):document.querySelector('.paycheck-planner');rbReveal(el);el?.scrollIntoView({behavior:'smooth',block:'start'});if(target==='check')$('paycheck')?.focus()},120)}const q=e.target.closest('[data-question]');if(q){const c=calc(),answers={score:`Your score is ${c.score}. Cover immediate bills, protect ${money(c.savings)} in savings, and stay within ${money(c.safeToSpend)}.`,spending:`Your safe-to-spend amount is ${money(c.safeToSpend)} through ${dateText(c.nextPay,{month:'short',day:'numeric'})}.`,challenge:experiment(c).text,saving:`I recommend ${money(c.savings)} this payday${c.savingsGoalTarget?` toward ${c.savingsGoalTarget.name}`:''}. Increase it only after immediate and upcoming bills are protected.`};dexxAsk(q.firstChild.textContent.trim(),answers[q.dataset.question])}});
 document.addEventListener('click',e=>{
   const command=e.target.closest('[data-command]');
   if(!command)return;
@@ -2794,6 +2971,12 @@ document.addEventListener('click',e=>{
 
 document.addEventListener('click',e=>{
   const btn=e.target.closest('[data-execution-task]');if(!btn||!data.approvedPlan)return;
+  /* 4.4.0.6 split paycheck: confirming the second half actually marks the
+     income received (which funds the rest) — not just a checklist tick. */
+  if(btn.dataset.executionTask==='split-part2'){
+    if(typeof confirmSplitPartReceived==='function')confirmSplitPartReceived();
+    render();return;
+  }
   const state=executionForPlan(data.approvedPlan),id=btn.dataset.executionTask;
   state.done[id]=!state.done[id];saveExecutionState();render();
 });
@@ -3056,7 +3239,7 @@ $('approvePlan').onclick=()=>{
   const beforePayday=Boolean(approvalPayDate&&approvalToday&&approvalPayDate>approvalToday);
   const reserveContributions=[];
   const savingsContributions=[];
-  const snapshot={id:`plan-${Date.now()}`,approvedAt:new Date().toISOString(),fundingStatus:'planned',fundedAt:'',healthScore:calculateHealthScore(c).total,paycheck:c.paycheck,balance:c.balance,payDate:data.payDate,nextPayday:data.nextPayday,cycleId:paycheckCycleId(data.payDate,data.nextPayday),payNow:c.payNow,reserve:c.reserve,reserveTarget:c.reserveTarget,reserveContributions,savingsContributions,reserveDetails:c.upcomingBills.map(b=>({parentId:b.parentId||b.id,name:b.name,amount:b.amount,date:b.date,alreadyProtected:b.alreadyProtected,currentCheckReserve:b.currentCheckReserve,paychecksRemaining:b.paychecksRemaining})),savings:c.savings,debtPayment:c.debtPayment,setAside:c.setAside,fundRemaining:c.fundRemaining,debtTarget:c.targetDebt?{id:c.targetDebt.id,name:c.targetDebt.name}:null,spent:c.expenseTotal||0,protected:(c.payNow||0)+(c.reserve||0)+(c.savings||0)+(c.debtPayment||0)+(c.setAside||0),expenses:(c.currentExpenses||[]).map(x=>({name:x.name||'Expense',category:historyExpenseCategory(x),amount:Number(x.amount)||0,date:x.date||'',source:x.source||''})),safeToSpend:c.safeToSpend,shortfall:c.shortfall,bills:c.dueNowBills.map(b=>({parentId:b.parentId||b.id,occurrenceDate:b.occurrenceDate||b.date,name:b.name,amount:b.amount,date:b.date,priority:b.priority,alreadyProtected:b.alreadyProtected,currentCheckDue:b.currentCheckDue}))};
+  const snapshot={id:`plan-${Date.now()}`,approvedAt:new Date().toISOString(),fundingStatus:'planned',fundedAt:'',healthScore:calculateHealthScore(c).total,paycheck:c.paycheck,balance:c.balance,payDate:data.payDate,nextPayday:data.nextPayday,cycleId:paycheckCycleId(data.payDate,data.nextPayday),splitCheck:(typeof splitCheckSnapshot==='function')?splitCheckSnapshot():null,payNow:c.payNow,reserve:c.reserve,reserveTarget:c.reserveTarget,reserveContributions,savingsContributions,reserveDetails:c.upcomingBills.map(b=>({parentId:b.parentId||b.id,name:b.name,amount:b.amount,date:b.date,alreadyProtected:b.alreadyProtected,currentCheckReserve:b.currentCheckReserve,paychecksRemaining:b.paychecksRemaining})),savings:c.savings,debtPayment:c.debtPayment,setAside:c.setAside,fundRemaining:c.fundRemaining,debtTarget:c.targetDebt?{id:c.targetDebt.id,name:c.targetDebt.name}:null,spent:c.expenseTotal||0,protected:(c.payNow||0)+(c.reserve||0)+(c.savings||0)+(c.debtPayment||0)+(c.setAside||0),expenses:(c.currentExpenses||[]).map(x=>({name:x.name||'Expense',category:historyExpenseCategory(x),amount:Number(x.amount)||0,date:x.date||'',source:x.source||''})),safeToSpend:c.safeToSpend,shortfall:c.shortfall,bills:c.dueNowBills.map(b=>({parentId:b.parentId||b.id,occurrenceDate:b.occurrenceDate||b.date,name:b.name,amount:b.amount,date:b.date,priority:b.priority,alreadyProtected:b.alreadyProtected,currentCheckDue:b.currentCheckDue}))};
   data.approvedPlan=snapshot;data.paycheckHistory.push(snapshot);data.missions.friday=true;data.missions.saving=c.savings>0;data.missions.bills=c.bills.length>0;
   executionState={planId:snapshot.id,done:{},updatedAt:new Date().toISOString()};saveExecutionState();
   setRecoveryContext('Approve payday plan',`${money(c.paycheck)} paycheck plan approved for ${dateText(data.payDate,{month:'short',day:'numeric'})}. Funding waits for actual-paycheck reconciliation.`,'approval');
@@ -3108,8 +3291,12 @@ function dexxSnapshotText(c){
   const bills=[...(c.dueNowBills||[]),...(c.upcomingBills||[])].filter(b=>!b.paid);
   const billLines=bills.slice(0,12).map(b=>`- ${b.name||'Bill'}: ${money(Number(b.amount||0))} due ${dateText(b.occurrenceDate||b.date,{month:'short',day:'numeric'})}${b.status==='overdue'?' (overdue)':''}`);
   const confirmed=c.paycheck>0;
+  /* 4.4.0.6 split paycheck: the second half is the same check, not a second
+     job — Dexx must describe it that way, or it will plan around half a
+     paycheck. */
+  const mainsLine=(()=>{if(!Array.isArray(data.mainIncomes)||!data.mainIncomes.length)return '';const sp=data.mainIncomes.filter(i=>i&&i.splitOf==='anchor'),om=data.mainIncomes.filter(i=>i&&i.splitOf!=='anchor');const parts=[];if(sp.length)parts.push(`Split paycheck — second half of the anchor check: ${sp.map(i=>`${i.name} ${money(i.amount)} ${i.frequency}, lands ${i.nextDate}`).join('; ')}. It is the same paycheck, so the plan counts the full check and funds each half as it lands.`);if(om.length)parts.push(`Main incomes besides the anchor paycheck: ${om.map(i=>`${i.name} ${money(i.amount)} ${i.frequency}, next ${i.nextDate}`).join('; ')}. These are first-class household incomes, not side income; their paydays count in reserves.`);return parts.join(' ')})();
   return [
-    `Journey step ${idx+1} of 7: ${step}.`,
+    `Journey step ${idx+1} of ${j?j.steps.length:7}: ${step}.`,
     `Safe-to-spend: ${money(c.safeToSpend)}${confirmed?' (live — paycheck confirmed)':' (planned — paycheck not confirmed yet)'}.`,
     `This check: ${money(c.paycheck||0)} expected${c.nextPay?'; next payday '+dateText(c.nextPay,{month:'short',day:'numeric'}):''}.`,
     `Cover now: ${money(c.payNow)}; protect for upcoming bills: ${money(c.reserve)}${c.reserveShortfall>0?` (shortfall ${money(c.reserveShortfall)})`:''}; savings this check: ${money(c.savings)}${c.savingsGoalTarget?` toward ${c.savingsGoalTarget.name}`:''}; debt payment: ${money(c.debtPayment)}${c.targetDebt?` toward ${c.targetDebt.name}`:''}.`,
@@ -3117,7 +3304,7 @@ function dexxSnapshotText(c){
     `Flexible spending recorded this cycle: ${money(c.expenseTotal)}${c.overspent?' (over the safe amount)':''}.`,
     `Health score: ${c.score}.`,
     (Array.isArray(data.incomes)&&data.incomes.length)?`Other incomes (pool into the primary journey once received): ${data.incomes.map(i=>`${i.name} ${money(i.amount)} ${i.frequency}`).join('; ')}. Received this cycle: ${money(c.pooledIncome||0)}.`:'',
-    (Array.isArray(data.mainIncomes)&&data.mainIncomes.length)?`Main incomes besides the anchor paycheck: ${data.mainIncomes.map(i=>`${i.name} ${money(i.amount)} ${i.frequency}, next ${i.nextDate}`).join('; ')}. These are first-class household incomes, not side income; their paydays count in reserves.`:'',
+    mainsLine,
     (data.business&&data.business.mode==='business'&&typeof flxBizState==='function')?(()=>{const s=flxBizState();return `Business Lab mode: business cash ${money(s.cash)}, tax set aside ${money(s.taxReserve)} at ${s.b.taxRate}%, open invoices ${money(s.openTotal)} (${s.overdue.length} overdue), next ${s.nextQ.label} estimated tax due ${s.nextQ.due}.`})():'',
     (Array.isArray(data.bills)&&data.bills.length)?`All tracked bills: ${data.bills.slice(0,25).map(b=>`${b.name} ${money(b.amount)} ${b.frequency||'monthly'} next due ${b.dueDate||b.date||'?'}`).join('; ')}.`:'',
     (data.business&&data.business.mode==='business')?'PERSONA: The user switched to Business Lab. You are Business Dexx: a sharp, confident business partner and CFO in a navy suit and shades, not a lab scientist. Talk like a business advisor (cash flow, invoices, margins, tax set-aside, paying yourself, keeping business and personal money separate). Keep it friendly and short. You are not a tax professional; suggest confirming tax specifics with one.':'',

@@ -237,6 +237,11 @@
         '<div class="fl-field"><label for="flPayDate">Payday</label><input type="date" id="flPayDate" /></div>' +
         '<div class="fl-field"><label for="flPayAmount">How much is the check?</label><div class="fl-money"><input type="number" id="flPayAmount" inputmode="decimal" min="0" placeholder="0" /></div></div>' +
         '<button class="fl-unknown-link" type="button" id="flUnknownAmt">I don&rsquo;t know my check amount yet</button>' +
+        '<button class="fl-unknown-link" type="button" id="flSplitToggle">My paycheck comes in two parts</button>' +
+        '<div id="flSplitFields" style="display:none;">' +
+          '<div class="fl-field"><label for="flSplitAmount">Second half amount</label><div class="fl-money"><input type="number" id="flSplitAmount" inputmode="decimal" min="0" placeholder="0" /></div></div>' +
+          '<div class="fl-field"><label for="flSplitDate">Second half payday</label><input type="date" id="flSplitDate" /></div>' +
+        '</div>' +
         '<div class="fl-preview" id="flPreview3" style="display:none;">' +
           '<h3>Your plan so far</h3>' +
           '<div class="fl-plan-row"><span class="fl-lbl">Paycheck<span class="fl-sub" id="flPayDateSub"></span></span><span class="fl-val" id="flPv3Pay">$0</span></div>' +
@@ -373,12 +378,44 @@
       data.setup.paycheckUnknown = false;
       if (payDate) data.setup.incomeConfirmed = true;
     }
+    flSaveSplitPart();
     flSave('First-run setup: paycheck',
       (flAmountUnknown ? 'Paycheck amount to confirm' :
        payAmount > 0 ? flMoney(payAmount) + ' paycheck' : 'Paycheck') +
       (payDate ? ' expected ' + flFmtDate(payDate) : '') + '.');
     if (flash) flFlash();
     return true;
+  }
+  /* ---------- 4.4.0.6 split paycheck: the second half ---------- */
+  var flSplitAmtEl = $('flSplitAmount'), flSplitDateEl = $('flSplitDate');
+  var flSplitOn = false;
+  function flSplitAmount() { return flSplitOn ? flParseAmt(flSplitAmtEl) : 0; }
+  function flSaveSplitPart() {
+    /* The second half is a main income flagged as part of the anchor check.
+       Toggling it off clears the flag (the entry stays as a regular main
+       income the user can delete in Check Details); toggling it back on
+       re-flags the first-run entry instead of duplicating it. */
+    if (typeof flxEnsureData === 'function') flxEnsureData();
+    if (!Array.isArray(data.mainIncomes)) data.mainIncomes = [];
+    var amt = flSplitAmount(), date = flSplitDateEl ? flSplitDateEl.value : '';
+    var existing = null;
+    if (typeof splitPartMain === 'function') existing = splitPartMain();
+    if (!existing) existing = data.mainIncomes.find(function (m) { return m && m.name === 'Second half of my check'; }) || null;
+    if (!flSplitOn || amt <= 0 || !date) { if (existing) delete existing.splitOf; return; }
+    var freq = (data.profile && data.profile.payFrequency) || 'weekly';
+    if (existing) { existing.amount = amt; existing.nextDate = date; existing.frequency = freq; existing.splitOf = 'anchor'; }
+    else {
+      var id = (typeof flxId === 'function') ? flxId('main') : ('main-' + Date.now());
+      data.mainIncomes.push({id: id, name: 'Second half of my check', amount: amt, frequency: freq, nextDate: date, received: [], splitOf: 'anchor'});
+    }
+  }
+  function flSetSplitOn(on, saveIt) {
+    flSplitOn = !!on;
+    var fields = $('flSplitFields'), toggle = $('flSplitToggle');
+    if (fields) fields.style.display = flSplitOn ? '' : 'none';
+    if (toggle) toggle.textContent = flSplitOn ? 'My paycheck comes in two parts \u2713' : 'My paycheck comes in two parts';
+    flSyncPaycheck();
+    if (saveIt) flSavePaycheckNow(true);
   }
   function flSavePaycheckSoon() {
     clearTimeout(flPaySaveTimer);
@@ -403,9 +440,10 @@
         if (p) p.textContent = 'To confirm';
         if (s) { s.textContent = 'To confirm'; s.classList.remove('neg'); }
       } else {
-        if (p) p.textContent = flFmt(payAmount);
+        var combined = payAmount + flSplitAmount();
+        if (p) p.textContent = flFmt(combined);
         if (s) {
-          var safe = flSimpleSafe(payAmount);
+          var safe = flSimpleSafe(combined);
           s.textContent = flFmt(safe);
           s.classList.toggle('neg', safe < 0);
           flPulse(s);
@@ -414,7 +452,9 @@
       var fine = $('flPv3Fine');
       if (fine) fine.textContent = flAmountUnknown
         ? 'Bills come next \u2014 your check amount gets confirmed at payday check-in.'
-        : 'Bills come next \u2014 watch this number move as you add them.';
+        : (flSplitOn && flSplitAmount() > 0
+          ? 'Both halves of your check, planned together. Bills come next \u2014 watch this number move as you add them.'
+          : 'Bills come next \u2014 watch this number move as you add them.');
     }
     flSyncPaydayChips();
   }
@@ -472,6 +512,17 @@
     flPayAmtEl.addEventListener('input', function () { flSyncPaycheck(); flSavePaycheckSoon(); });
     flPayAmtEl.addEventListener('change', function () { flSyncPaycheck(); flSavePaycheckNow(true); });
   }
+  /* 4.4.0.6 split paycheck: toggle + second-half fields. */
+  var flSplitToggle = $('flSplitToggle');
+  if (flSplitToggle) flSplitToggle.addEventListener('click', function () { flSetSplitOn(!flSplitOn, true); });
+  if (flSplitAmtEl) {
+    flSplitAmtEl.addEventListener('input', function () { flSyncPaycheck(); flSavePaycheckSoon(); });
+    flSplitAmtEl.addEventListener('change', function () { flSyncPaycheck(); flSavePaycheckNow(true); });
+  }
+  if (flSplitDateEl) {
+    flSplitDateEl.addEventListener('change', function () { flSyncPaycheck(); flSavePaycheckSoon(); });
+    flSplitDateEl.addEventListener('input', function () { flSyncPaycheck(); flSavePaycheckSoon(); });
+  }
 
   /* ---------- Screen 4: bills, one at a time ---------- */
   var flBillNameEl = $('flBillName'), flBillAmtEl = $('flBillAmount'), flBillDueEl = $('flBillDue');
@@ -520,7 +571,7 @@
     });
   }
   function flSyncPreview4() {
-    var payAmount = flAmountUnknown ? 0 : flParseAmt(flPayAmtEl);
+    var payAmount = flAmountUnknown ? 0 : flParseAmt(flPayAmtEl) + flSplitAmount();
     var payDate = flPayDateEl ? flPayDateEl.value : (data.payDate || '');
     var sub = $('flPv4DateSub');
     if (sub) sub.textContent = flFmtDate(payDate);
